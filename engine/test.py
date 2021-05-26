@@ -17,22 +17,23 @@ class Print(AbstractAction):
         return Performance.MOVE_ON()
 
 class Input(AbstractAction):
-    def __init__(self, prompt, var):
+    def __init__(self, prompt, var, parse=None):
         self.var = var
         self.prompt = prompt
+        self.parse = parse
 
     def perform(self, session: AbstractSession) -> Performance:
         answer = input(self.prompt)
-        session.var._set(self.var, answer)
+        value = self.parse(answer) if self.parse else answer
+        session.var._set(self.var, value)
         return Performance.MOVE_ON()
 
-session = BaseSession()
+# story logic
 
 story = StoryMap(
     entry = [
         Print("Welcome to this new game"),
-        Input("Enter your age: ", Var.text_age),
-        Let(age = lambda var: int(var.text_age)),
+        Input("Enter your age: ", Var.age, parse=int),
         Print(f"Ok, your age is: {Var.age}"),
         Conditional(
             smol = lambda var: var.age < 18,
@@ -49,7 +50,11 @@ story = StoryMap(
     ]
 )
 
+# session and narrative machine
+
 from time import sleep
+
+session = BaseSession()
 
 machine = NarrativeMachine(
     session=session,

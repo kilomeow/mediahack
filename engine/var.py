@@ -86,7 +86,9 @@ class MatchMode:
 
 # lil helper
 def _raise(ex):
-    raise ex
+    def cb():
+        raise ex
+    return cb
 
 class Jump(AbstractAction):
     def __init__(self, value_key: VarKey, jump_map: Dict[Any, str], mode=MatchMode.WEAK()):
@@ -99,8 +101,8 @@ class Jump(AbstractAction):
         if value not in self.jump_map.keys():
             return self.mode.match(
                 weak=Performance.MOVE_ON,
-                strict=lambda: _raise(KeyError),
-                fallback=lambda name: Performance.JUMP(name)
+                strict=_raise(KeyError),
+                fallback=Performance.JUMP
             )
         else:
             return Performance.JUMP(self.jump_map[value])
@@ -121,8 +123,8 @@ class Switch(AbstractAction):
         if glide_name not in self.glides.keys():
             return self.mode.match(
                 weak=Performance.MOVE_ON,
-                strict=lambda: _raise(KeyError),
-                fallback=lambda name: Performance.JUMP_SUB(name)
+                strict=_raise(KeyError),
+                fallback=Performance.JUMP_SUB
             )
         else:
             return Performance.JUMP_SUB(glide_name)
@@ -139,6 +141,6 @@ class Conditional(AbstractAction):
         else:
             return self.mode.match(
                 weak=Performance.MOVE_ON,
-                strict=lambda: _raise(KeyError),
-                fallback=lambda name: Performance.JUMP(name)
+                strict=_raise(KeyError),
+                fallback=Performance.JUMP
             )
