@@ -64,13 +64,19 @@ class NarrativeMachine:
                 self.session.progress[new_state] = 0
 
     # bind callback
-    def _bind(self, callback: Callable[[AbstractSession, Callable], None]):
+    def _bind(self, bind_cb: Callable[[Callable], None], after_cb: Callable):
         self.bound = True
-        return callback(self.session, lambda: self.run(resume=True))
+        self._after_resume = after_cb
+        self._step()
+        return bind_cb(self.session, lambda: self.run(resume=True))
     
 
     def run(self, resume=False):
-        if resume: self.bound = False
+
+        # if resuming
+        if self.bound and resume:
+            self._after_resume(self.session)
+            self.bound = False
         
         # action loop
         while not self.bound:
@@ -100,8 +106,8 @@ class NarrativeMachine:
             else:
                 result.match(
                     move_on=self._step,
-                    bind=lambda cb: self._bind,
-                    jump=lambda name: self._step(new_state=name),
+                    bind=self._bind,
+                    jump=self._step,
                     jump_sub=lambda name: self._step(new_state=f"<{name}"),
                 )
 

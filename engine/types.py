@@ -1,16 +1,16 @@
 from adt import adt, Case
 from typing import Callable, Dict, List
 
+class AbstractSession:
+    pass
+
+
 @adt
 class Performance:
     MOVE_ON: Case
-    BIND: Case[Callable]
+    BIND: Case[Callable[[AbstractSession, Callable], None], Callable[[AbstractSession], None]]
     JUMP: Case[str]
     JUMP_SUB: Case[str]
-
-
-class AbstractSession:
-    pass
 
 
 class AbstractAction:
