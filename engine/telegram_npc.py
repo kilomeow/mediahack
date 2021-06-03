@@ -21,7 +21,7 @@ ok_markup = InlineKeyboardMarkup.from_button(InlineKeyboardButton('Понятн�
 
 def ok_handler(session, resume):
     def cb(update: telegram.Update, context):
-        update.callback_query.answer(text="Приятно!")
+        update.callback_query.answer(text="Принято!")
         update.callback_query.message.edit_reply_markup()
         return resume()
     return CallbackQueryHandler(cb)
@@ -90,10 +90,13 @@ class NPC:
 
     @dataclass
     class Say(AbstractAction, method):
+
+        PREPARE_LENGTH = 6
+
         text: str
 
         def perform(self, session: AbstractSession) -> Performance:
-            self.npc.typing(len(self.text), session.chat_id)
+            self.npc.typing(self.PREPARE_LENGTH+len(self.text), session.chat_id)
             self.npc.bot.send_message(chat_id=session.chat_id, text=self.text)
             return Performance.MOVE_ON()
 
@@ -101,7 +104,7 @@ class NPC:
     @dataclass
     class Info(AbstractAction, method):
 
-        PREPARE_LENGTH = 20
+        PREPARE_LENGTH = 100
 
         text: str
 
@@ -109,7 +112,8 @@ class NPC:
             self.npc.typing(self.PREPARE_LENGTH, session.chat_id)
             self.npc.bot.send_message(chat_id=session.chat_id,
                                       text=self.text,
-                                      reply_markup=ok_markup)
+                                      reply_markup=ok_markup,
+                                      parse_mode=ParseMode.MARKDOWN)
             
             return self.npc.BIND(ok_handler)
     
@@ -117,13 +121,11 @@ class NPC:
     @dataclass
     class Advice(AbstractAction, method):
 
-        PREPARE_LENGTH = 15
-
         caption: str
         text: str
 
         def perform(self, session: AbstractSession) -> Performance:
-            self.npc.typing(self.PREPARE_LENGTH, session.chat_id)
+            self.npc.typing(len(self.text)*0.5, session.chat_id)
             message_text = f"<b>[{self.caption}]</b> {self.text}"
             self.npc.bot.send_message(chat_id=session.chat_id,
                                       text=message_text,
@@ -155,3 +157,24 @@ class NPC:
             return CallbackQueryHandler(cb)
 
         return self.npc.BIND(options_handler)
+
+
+@methodize
+@dataclass
+
+class Ability:
+
+    name: str
+    npc: NPC
+
+    @dataclass
+    class Advice(AbstractAction, method):
+
+        text: str
+
+        def is_actual(self, session: AbstractSession) -> bool:
+            return self.ability.name in session.abilities
+
+        def perform(self, session: AbstractAction) -> Performance:
+            adv = self.ability.npc.advice(caption=self.ability.name, text=self.text)
+            return adv.perform(session)
