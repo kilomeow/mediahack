@@ -107,6 +107,14 @@ class Jump(AbstractAction):
         else:
             return Performance.JUMP(self.jump_map[value])
 
+@dataclass
+class Proceed(AbstractAction):
+
+    glide_name: str
+
+    def perform(self, session : VarSession) -> Performance:
+        return Performance.JUMP(self.glide_name)
+
 
 class Switch(AbstractAction):
     def __init__(self, value_key: VarKey, local_glides: Dict[str, List[AbstractAction]], mode=MatchMode.WEAK()):
