@@ -7,8 +7,9 @@ from types import SimpleNamespace
 from numbers import Number
 from typing import Callable, List, Tuple
 
-from telegram.ext import InlineQueryHandler, Dispatcher
+from telegram.ext import InlineQueryHandler, Dispatcher, Filters, MessageFilter
 from telegram.ext.callbackqueryhandler import CallbackQueryHandler
+from telegram.ext.messagehandler import MessageHandler
 
 from engine.types import AbstractAction, Performance, AbstractSession
 from engine.var import Var, VarKey, VarSession
@@ -19,15 +20,34 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ParseMode
 
 ok_markup = InlineKeyboardMarkup.from_button(InlineKeyboardButton('Понятно', callback_data='ok'))
 
+
+class SessionQueryHandler(CallbackQueryHandler):
+    def __init__(self, session, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.session = session
+
+    def check_update(self, update):
+        if update.effective_chat.id == self.session.chat_id:
+            return super().check_update(update)
+
+
 def ok_handler(session, resume):
     def cb(update: telegram.Update, context):
         update.callback_query.answer(text="Принято!")
         update.callback_query.message.edit_reply_markup()
         return resume()
-    return CallbackQueryHandler(cb)
+    return SessionQueryHandler(session, cb)
 
-import time
 
+@dataclass
+class NewMember(MessageFilter):
+    user_id: int
+
+    def filter(self, message: telegram.Message):
+        return any([u.id == self.user_id for u in message.new_chat_members])
+
+
+## meta hacks
 
 class method:
     def _enroot(self, rootname, root):
@@ -56,6 +76,8 @@ def methodize(cls):
 
     return cls
 
+
+import time
 
 @methodize
 @dataclass
@@ -154,9 +176,28 @@ class NPC:
                 update.callback_query.answer()
                 session.var._set(self.var, update.callback_query.data)
                 return resume()
-            return CallbackQueryHandler(cb)
+            return SessionQueryHandler(session, cb)
 
         return self.npc.BIND(options_handler)
+
+    @dataclass
+    class Invite(AbstractAction, method):
+
+        character: 'NPC'
+
+        def perform(self, session: AbstractSession) -> Performance:
+
+            char_name = self.character.bot.username
+            char_id = self.character.bot.id
+
+            self.npc.bot.send_message(chat_id=session.chat_id,
+                                      text=f"Пожалуйста, добавьте @{char_name} в чат!")
+
+            
+            def bot_added(session: VarSession, resume: Callable):
+                return MessageHandler(Filters.chat(session.chat_id) & NewMember(char_id), lambda u, c: resume())
+
+            return self.npc.BIND(bot_added)
 
 
 @methodize
