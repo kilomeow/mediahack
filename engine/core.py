@@ -56,6 +56,9 @@ class NarrativeMachine:
 
     # move one step forward -- either in the current glide or jumping to another    
     def _step(self, new_state=None):
+
+        print(self.session.progress)
+
         self.session.progress[self.state] += 1
 
         if new_state:
