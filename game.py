@@ -55,7 +55,7 @@ ab_handler = CallbackQueryHandler(update_abs)
 
 #npc.Squirrel.dispatcher.add_handler(ab_handler)
 
-actions_delay = 0.6
+actions_delay = 1
 
 import time
 
