@@ -70,7 +70,7 @@ content = StoryMap(
         npc.Owl.say("Вау, пожарная служба вывесила на сайте опровержение"),
         npc.Squirrel.say("Да, у нас могут быть проблемы "),
         npc.Squirrel.say("Будем следить за развитием событий и думать вместе!"),
-        Proceed('letter'),
+        Proceed(letter = True),
     ],
 
     not_published = [
@@ -81,7 +81,7 @@ content = StoryMap(
         npc.Floppa.say("Не переживай! Ты обязательно всё сможешь!"),
         npc.Squirrel.say("Может быть, с ты сможешь ещё с кем-нибудь связаться!"),
         # ЗДЕСЬ КОНЕЦ ПОСЛЕДСТВИЙ
-        Proceed('letter'),
+        Proceed(letter = True),
     ],
 
     letter = [
@@ -129,8 +129,9 @@ content = StoryMap(
         #В СТРОКЕ НИЖЕ ДОЛЖНО БЫТЬ ГОЛОСОВАНИЕ
         npc.Squirrel.ask(
             "Всё, что я сейчас поняла, это то, что наши данные пытались своровать. Нам стоит рассказать об этом случае нашим читателям?",
-            [("Сообщаем", "y"), ("Не сообщаем", "n")], Var.report_to_readers),
-        Jump(Var.report_to_readers, {"y": "reported", "n": "not_reported"}),
+            [("Сообщаем", "reported"), ("Не сообщаем", "not_reported")], Var.report_to_readers),
+        Jump(Var.report_to_readers),
+        Proceed(ending_junction = True)
     ],
 
     reported = [
