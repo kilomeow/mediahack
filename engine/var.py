@@ -1,4 +1,4 @@
-from typing import Callable, Any, Dict, List
+from typing import Callable, Any, Dict, List, Union
 from engine.types import Performance, AbstractAction, AbstractSession
 
 from dataclasses import dataclass
@@ -67,12 +67,15 @@ class Eval(AbstractAction):
 
 
 class Let(AbstractAction):
-    def __init__(self, **varops: Callable[[VarStore], Any]):
+    def __init__(self, **varops: Union[Callable[[VarStore], Any], Any]):
         self.varops = varops
 
     def perform(self, session : VarSession) -> Performance:
         for varname, varop in self.varops.items():
-            session.var._data[varname] = varop(session.var)
+            if callable(varop):
+                session.var._data[varname] = varop(session.var)
+            else:
+                session.var._data[varname] = varop
         return Performance.MOVE_ON()
 
 
@@ -84,16 +87,18 @@ class MatchMode:
     STRICT: Case
     FALLBACK: Case[str]
 
+
 # lil helper
-def _raise(ex):
+def raiser(ex):
     def cb():
         raise ex
     return cb
 
+
 class Jump(AbstractAction):
-    def __init__(self, value_key: VarKey, jump_map: Dict[Any, str], mode=MatchMode.WEAK()):
+
+    def __init__(self, value_key: VarKey, mode=MatchMode.WEAK()):
         self.value_key = value_key
-        self.jump_map = jump_map
         self.mode = mode
 
     def perform(self, session : VarSession) -> Performance:
@@ -101,23 +106,58 @@ class Jump(AbstractAction):
         if value not in self.jump_map.keys():
             return self.mode.match(
                 weak=Performance.MOVE_ON,
-                strict=_raise(KeyError),
+                strict=raiser(KeyError),
                 fallback=Performance.JUMP
             )
         else:
             return Performance.JUMP(self.jump_map[value])
 
-@dataclass
-class Proceed(AbstractAction):
 
-    glide_name: str
+class Match(AbstractAction):
+
+    def __init__(self, value_key: VarKey, mode=MatchMode.WEAK(), **jump_map: Any):
+        self.value_key = value_key
+        self.jump_map = jump_map
+        self.mode = mode
 
     def perform(self, session : VarSession) -> Performance:
-        return Performance.JUMP(self.glide_name)
+        var_value = session.var._access(self.value_key)
+        for glide, value in self.jump_map.items():
+            if value == var_value:
+                return Performance.JUMP(glide)
+        else:
+            return self.mode.match(
+                weak=Performance.MOVE_ON,
+                strict=raiser(KeyError),
+                fallback=Performance.JUMP
+            )
+
+
+class Proceed(AbstractAction):
+
+    def __init__(self, mode=MatchMode.WEAK(), **glides: bool):
+        self.mode = mode
+        self.glide = None
+        for glide, actual in glides:
+            if actual:
+                self.glide = glide
+                break
+
+    def perform(self, session : VarSession) -> Performance:
+        if self.glide is None:
+            return self.mode.match(
+                weak=Performance.MOVE_ON,
+                strict=raiser(KeyError),
+                fallback=Performance.JUMP
+            )
+        else:
+            return Performance.JUMP(self.glide)
+
 
 
 class Switch(AbstractAction):
-    def __init__(self, value_key: VarKey, local_glides: Dict[str, List[AbstractAction]], mode=MatchMode.WEAK()):
+
+    def __init__(self, value_key: VarKey, mode=MatchMode.WEAK(), **local_glides: List[AbstractAction]):
         self.value_key = value_key
         self.glides = local_glides
         self.mode = mode
@@ -131,7 +171,7 @@ class Switch(AbstractAction):
         if glide_name not in self.glides.keys():
             return self.mode.match(
                 weak=Performance.MOVE_ON,
-                strict=_raise(KeyError),
+                strict=raiser(KeyError),
                 fallback=Performance.JUMP_SUB
             )
         else:
@@ -139,6 +179,7 @@ class Switch(AbstractAction):
 
 
 class Conditional(AbstractAction):
+
     def __init__(self, mode=MatchMode.WEAK(), **conditions: Callable[[VarStore], bool]):
         self.mode = mode
         self.conditions = conditions
@@ -149,6 +190,6 @@ class Conditional(AbstractAction):
         else:
             return self.mode.match(
                 weak=Performance.MOVE_ON,
-                strict=_raise(KeyError),
+                strict=raiser(KeyError),
                 fallback=Performance.JUMP
             )
