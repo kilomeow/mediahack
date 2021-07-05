@@ -40,3 +40,10 @@ score = Score(total=20, manager=npc.Squirrel)
 
 with open('modules/docs.json') as docs_f:
     docs = json.load(docs_f)
+
+import modules
+import modules.fishing
+import modules.media
+
+modules_names = ['media', 'fishing']
+modules_info = [(getattr(modules, n).description, n) for n in modules_names]

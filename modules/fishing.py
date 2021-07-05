@@ -3,6 +3,8 @@ from engine.var import Var, Let, Conditional, Proceed, Jump
 
 from modules.init import npc, ab, score
 
+description = "Фишинг, VPN и почты"
+
 content = StoryMap(
     entry = [
         npc.Magpie.say("ребята кажется я нашла кое-что новое о пожарах но мне нужна помощь"),
@@ -54,8 +56,8 @@ content = StoryMap(
         #В СТРОКЕ НИЖЕ ДОЛЖНО БЫТЬ ГОЛОСОВАНИЕ
         npc.Squirrel.ask(
             "Ребята, внимание! Нам сейчас нужно решить, что делать с этим материалом. Сейчас у нас нет возможности его проверить, поэтому в случае публикации мы можем нарваться не неприятности. С другой стороны, мы можем привлечь ещё больше внимания к пожарам.",
-            [("Публикуем", "y"), ("Не публикуем", "n")], Var.publish_material),
-        Jump(Var.publish_material, {"y": "published", "n": "not_published"})
+            [("Публикуем", "published"), ("Не публикуем", "not_published")], Var.publish_material),
+        Jump(Var.publish_material)
     ],
 
     published = [

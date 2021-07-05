@@ -102,15 +102,15 @@ class Jump(AbstractAction):
         self.mode = mode
 
     def perform(self, session : VarSession) -> Performance:
-        value = session.var._access(self.value_key)
-        if value not in self.jump_map.keys():
-            return self.mode.match(
-                weak=Performance.MOVE_ON,
-                strict=raiser(KeyError),
-                fallback=Performance.JUMP
-            )
-        else:
-            return Performance.JUMP(self.jump_map[value])
+        glide = session.var._access(self.value_key)
+        #if there is no such a glide in a global story map:
+        #   return self.mode.match(
+        #        weak=Performance.MOVE_ON,
+        #        strict=raiser(KeyError),
+        #        fallback=Performance.JUMP
+        #    )
+        # else:
+        return Performance.JUMP(glide)
 
 
 class Match(AbstractAction):
@@ -138,7 +138,7 @@ class Proceed(AbstractAction):
     def __init__(self, mode=MatchMode.WEAK(), **glides: bool):
         self.mode = mode
         self.glide = None
-        for glide, actual in glides:
+        for glide, actual in glides.items():
             if actual:
                 self.glide = glide
                 break
