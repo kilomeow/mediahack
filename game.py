@@ -1,3 +1,4 @@
+from telegram import parsemode
 from telegram.ext.callbackqueryhandler import CallbackQueryHandler
 from telegram.ext.inlinequeryhandler import InlineQueryHandler
 from telegram.ext.messagehandler import MessageHandler
@@ -10,16 +11,20 @@ from engine.basic import BaseSession
 # engine actions
 from engine.glide import StoryMap
 from engine.telegram_npc import NPC, Ability
-from engine.var import Var, Let, Conditional, Proceed
+from engine.var import Var, Let, Conditional, Proceed, VarSession
 
 # telegram
 from telegram.ext import CommandHandler, Updater, dispatcher, Filters
 from telegram import Update
 
 # setting up
-from modules.init import npc, ab, updaters, abilities_names
+from modules.init import npc, ab, updaters, abilities_names, score
 
-import modules.intro.entry
+import modules.intro
+import modules.test
+
+import modules.media
+import modules.fishing
 
 def inline_row(*text_seq):
     buttons = [InlineKeyboardButton(text=t, callback_data=t) for t in text_seq]
@@ -55,34 +60,83 @@ ab_handler = CallbackQueryHandler(update_abs)
 
 #npc.Squirrel.dispatcher.add_handler(ab_handler)
 
-actions_delay = 1
-
 import time
 
-def action_prefix(session, action):
-    time.sleep(actions_delay)
-    print(f"{session.chat_id}: {action}")
+def action_delay(delay):
+    def prefix(session, action):
+        time.sleep(delay)
+        print(f"{session.chat_id}: {action}")
+    return prefix
 
 
 def setup(update, context):
     session = BaseSession()
     session.chat_id = update.effective_chat.id
     session.abilities = list()
-    context.chat_data['session'] = session    
+
+    session.delay_time = 1
 
     machine = NarrativeMachine(
-        session=context.chat_data['session'],
-        glide_map=modules.intro.entry.content,
-        prefix_callback=action_prefix,
+        session=session,
+        glide_map=modules.intro.content,
+        prefix_callback=action_delay(session.delay_time),
+        error_callback=lambda e, s, p, a: print(type(e), e, s, p, a),
+        end_callback=jump_to_module
+    )
+
+    machine.run()
+
+
+def test_setup(update, context):
+    session = BaseSession()
+    session.chat_id = update.effective_chat.id
+    session.abilities = list()
+    session.var._data['null'] = None
+
+    session.delay_time = 0
+
+    def addscore(update, context):
+        v = int(update.message.text.split()[1])
+        action = score.add(v)
+        action.perform(session)
+
+    def vars(update, context):
+        update.message.reply_text(
+            "\n".join([f"<code>Var.{var}</code> : {val}" for var, val in session.var._data.items()]),
+            parse_mode = ParseMode.HTML
+        )
+
+    npc.Squirrel.dispatcher.add_handler(CommandHandler('addscore', addscore, filters=Filters.chat(session.chat_id)))
+    npc.Squirrel.dispatcher.add_handler(CommandHandler('vars', vars, filters=Filters.chat(session.chat_id)))
+
+    machine = NarrativeMachine(
+        session=session,
+        glide_map=modules.test.content,
+        prefix_callback=action_delay(session.delay_time),
+        error_callback=lambda e, s, p, a: print(type(e), e, s, p, a),
+        end_callback=jump_to_module
+    )
+
+    machine.run()
+
+
+def jump_to_module(session: VarSession):
+    module = getattr(modules, session.var.module)
+
+    machine = NarrativeMachine(
+        session=session,
+        glide_map=module.content,
+        prefix_callback=action_delay(session.delay_time),
         error_callback=lambda e, s, p, a: print(type(e), e, s, p, a),
         end_callback=lambda s: print('End!')
     )
-    
+
     machine.run()
 
-npc.Squirrel.dispatcher.add_handler(CommandHandler('start', setup))
 
-npc.Squirrel.dispatcher.add_handler(MessageHandler(Filters.regex("^(Готово)$"), setup))
+
+npc.Squirrel.dispatcher.add_handler(CommandHandler('start', setup))
+npc.Squirrel.dispatcher.add_handler(CommandHandler('test', test_setup))
 
 
 if __name__ == '__main__':
