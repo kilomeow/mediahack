@@ -1,4 +1,5 @@
 from telegram import parsemode
+import telegram
 from telegram.ext.callbackqueryhandler import CallbackQueryHandler
 from telegram.ext.inlinequeryhandler import InlineQueryHandler
 from telegram.ext.messagehandler import MessageHandler
@@ -89,11 +90,12 @@ def setup(update, context):
     machine.run()
 
 
-def test_setup(update, context):
+def test_setup(update: telegram.Update, context):
     session = BaseSession()
     session.chat_id = update.effective_chat.id
     session.abilities = list()
     session.var._data['null'] = None
+    session.players = [update.effective_user.id]
 
     session.debug = True
 
