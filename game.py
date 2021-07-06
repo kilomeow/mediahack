@@ -18,7 +18,7 @@ from telegram.ext import CommandHandler, Updater, dispatcher, Filters
 from telegram import Update
 
 # setting up
-from modules.init import npc, ab, updaters, abilities_names, score
+from modules.init import npc, ab, updaters, abilities_names, score, reading_speed
 
 import modules.intro
 import modules.test
@@ -62,11 +62,13 @@ ab_handler = CallbackQueryHandler(update_abs)
 
 import time
 
-def action_delay(delay):
-    def prefix(session, action):
+def reading_pause_prefix(session, action):
+    if hasattr(session.last_action, 'reading_length'):
+        delay = session.last_action.reading_length / reading_speed
         time.sleep(delay)
-        print(f"{session.chat_id}: {action}")
-    return prefix
+
+def debug_prefix(session, action):
+    print(f"{session.chat_id}: {action}")
 
 
 def setup(update, context):
@@ -74,12 +76,12 @@ def setup(update, context):
     session.chat_id = update.effective_chat.id
     session.abilities = list()
 
-    session.delay_time = 1
+    session.debug = False
 
     machine = NarrativeMachine(
         session=session,
         glide_map=modules.intro.content,
-        prefix_callback=action_delay(session.delay_time),
+        prefix_callback=reading_pause_prefix,
         error_callback=lambda e, s, p, a: print(type(e), e, s, p, a),
         end_callback=jump_to_module
     )
@@ -93,7 +95,7 @@ def test_setup(update, context):
     session.abilities = list()
     session.var._data['null'] = None
 
-    session.delay_time = 0
+    session.debug = True
 
     def addscore(update, context):
         v = int(update.message.text.split()[1])
@@ -112,7 +114,7 @@ def test_setup(update, context):
     machine = NarrativeMachine(
         session=session,
         glide_map=modules.test.content,
-        prefix_callback=action_delay(session.delay_time),
+        prefix_callback=debug_prefix,
         error_callback=lambda e, s, p, a: print(type(e), e, s, p, a),
         end_callback=jump_to_module
     )
@@ -126,7 +128,7 @@ def jump_to_module(session: VarSession):
     machine = NarrativeMachine(
         session=session,
         glide_map=module.content,
-        prefix_callback=action_delay(session.delay_time),
+        prefix_callback=debug_prefix if session.debug else reading_pause_prefix,
         error_callback=lambda e, s, p, a: print(type(e), e, s, p, a),
         end_callback=lambda s: print('End!')
     )

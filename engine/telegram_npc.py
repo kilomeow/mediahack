@@ -127,6 +127,10 @@ class NPC:
             self.npc.bot.send_message(chat_id=session.chat_id, text=self.text)
             return Performance.MOVE_ON()
 
+        @property
+        def reading_length(self):
+            return self.PREPARE_LENGTH + len(self.text)
+
 
     @dataclass
     class Info(AbstractAction, method):

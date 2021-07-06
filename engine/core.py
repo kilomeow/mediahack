@@ -33,6 +33,8 @@ class NarrativeMachine:
         self.play_all = play_all
         self.bound = False
 
+        self.session.last_action = None
+
     def next_action(self) -> AbstractAction:
 
         '''
@@ -56,9 +58,6 @@ class NarrativeMachine:
 
     # move one step forward -- either in the current glide or jumping to another    
     def _step(self, new_state=None):
-
-        print(self.session.progress)
-
         self.session.progress[self.state] += 1
 
         if new_state:
@@ -107,6 +106,10 @@ class NarrativeMachine:
                 self.error_callback(e, self.state, self.progress, action)
                 self._step()
             else:
+                # last succesfull action
+                self.session.last_action = action
+
+                # process action result
                 result.match(
                     move_on=self._step,
                     bind=self._bind,

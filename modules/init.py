@@ -38,6 +38,8 @@ for a in conf['abilities']:
 
 score = Score(total=20, manager=npc.Squirrel)
 
+reading_speed = conf['reading_speed']
+
 with open('modules/docs.json') as docs_f:
     docs = json.load(docs_f)
 
