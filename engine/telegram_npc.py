@@ -124,7 +124,10 @@ class NPC:
 
         def perform(self, session: AbstractSession) -> Performance:
             self.npc.typing(self.PREPARE_LENGTH+len(self.text), session.chat_id)
-            self.npc.bot.send_message(chat_id=session.chat_id, text=self.text)
+            self.npc.bot.send_message(
+                chat_id=session.chat_id,
+                text=self.text,
+                parse_mode=ParseMode.MARKDOWN)
             return Performance.MOVE_ON()
 
         @property
@@ -141,12 +144,50 @@ class NPC:
 
         def perform(self, session: AbstractSession) -> Performance:
             self.npc.typing(self.PREPARE_LENGTH, session.chat_id)
+
+            session.ok_players = list()
+
+            read_players = lambda: f"<code>[{len(session.ok_players)}/{len(session.players)}]</code>"
+
             self.npc.bot.send_message(chat_id=session.chat_id,
-                                      text=self.text,
+                                      text=self.text + "\n" + read_players(),
                                       reply_markup=ok_markup,
-                                      parse_mode=ParseMode.MARKDOWN)
+                                      parse_mode=ParseMode.HTML)
+
+            def _bind(session: AbstractSession, resume: Callable):
+
+                def ok(update: telegram.Update, context):
+                    uid = update.effective_user.id
+
+                    # if not registered user
+                    if uid not in session.players: 
+                        update.callback_query.answer()
+                        return
+                    
+                    if uid not in session.ok_players:
+                        update.callback_query.answer(text="Принято!")
+                        session.ok_players.append(uid)
+                        update.callback_query.message.edit_text(
+                            self.text + "\n" + read_players(),
+                            reply_markup = ok_markup,
+                            parse_mode=ParseMode.HTML
+                        )
+                    else:
+                        update.callback_query.answer(text="Вы уже отметились")
+
+                    if len(session.ok_players) == len(session.players):
+                        update.callback_query.message.edit_reply_markup()
+                        return resume()
+
+                session.handler = SessionQueryHandler(session, ok)
+
+                self.npc.dispatcher.add_handler(session.handler)
+                    
+
+            def _remove(session: AbstractSession):
+                self.npc.dispatcher.remove_handler(session.handler)
             
-            return self.npc.BIND(ok_handler)
+            return Performance.BIND(_bind, _remove)
     
 
     @dataclass
@@ -284,8 +325,38 @@ class NPC:
         def perform(self, session: AbstractSession) -> Performance:
             self.npc.bot.kick_chat_member(session.chat_id, self.character.bot.id)
             return Performance.MOVE_ON()
-        
+
+    @dataclass
+    class Acquaintance(AbstractAction, method):
+
+        reply_phrases: List[str]
+
+        def perform(self, session: AbstractSession) -> Performance:
+
+            session.players = list()
+
+            def meet_player(update: telegram.Update, context):
+                uid = update.effective_user.id
+                if uid not in session.players:
+                    update.message.reply_text(
+                        self.reply_phrases[len(session.players) % len(self.reply_phrases)],
+                        parse_mode = ParseMode.MARKDOWN
+                    )
+                    session.players.append(uid)
             
+            def _bind(session: AbstractSession, resume: Callable):
+                session.meet_handler = MessageHandler(Filters.sticker & Filters.chat(session.chat_id), meet_player)
+                session.ready_handler = MessageHandler(Filters.regex("^Готово$") & Filters.chat(session.chat_id), lambda u, c: resume())
+
+                self.npc.dispatcher.add_handler(session.meet_handler)
+                self.npc.dispatcher.add_handler(session.ready_handler)
+
+            def _remove(session: AbstractSession):
+                self.npc.dispatcher.remove_handler(session.meet_handler)
+                self.npc.dispatcher.remove_handler(session.ready_handler)
+
+            return Performance.BIND(_bind, _remove)
+
 
 
 @methodize
