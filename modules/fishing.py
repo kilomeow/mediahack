@@ -170,9 +170,9 @@ content = StoryMap(
 
     ending_junction = [
         Conditional(
-            ending1=lambda var: var.report_to_readers and var.publish_material,
-            ending2=lambda var: var.publish_material,
-            ending3=lambda var: var.report_to_readers or not (var.report_to_readers and var.publish_material)
+            ending1=lambda var: var.report_to_readers == "reported" and var.publish_material == "published",
+            ending2=lambda var: var.publish_material == "published",
+            ending3=lambda var: True
         )
     ],
 
