@@ -147,12 +147,12 @@ class NPC:
 
             session.ok_players = list()
 
-            read_players = lambda: f"<code>[{len(session.ok_players)}/{len(session.players)}]</code>"
+            read_players = lambda: f"`[{len(session.ok_players)}/{len(session.players)}]`"
 
             self.npc.bot.send_message(chat_id=session.chat_id,
                                       text=self.text + "\n" + read_players(),
                                       reply_markup=ok_markup,
-                                      parse_mode=ParseMode.HTML)
+                                      parse_mode=ParseMode.MARKDOWN)
 
             def _bind(session: AbstractSession, resume: Callable):
 
@@ -170,7 +170,7 @@ class NPC:
                         update.callback_query.message.edit_text(
                             self.text + "\n" + read_players(),
                             reply_markup = ok_markup,
-                            parse_mode=ParseMode.HTML
+                            parse_mode=ParseMode.MARKDOWN
                         )
                     else:
                         update.callback_query.answer(text="Вы уже отметились")
