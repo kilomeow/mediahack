@@ -46,6 +46,8 @@ with open('modules/docs.json') as docs_f:
 import modules
 import modules.fishing
 import modules.media
+import modules.hacking
+import modules.encryption
 
-modules_names = ['media', 'fishing']
+modules_names = ['media', 'fishing', 'hacking', 'encryption']
 modules_info = [(getattr(modules, n).description, n) for n in modules_names]
