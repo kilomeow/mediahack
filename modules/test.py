@@ -1,10 +1,10 @@
 from engine.glide import StoryMap
-from engine.var import Var, Let, Conditional, Proceed, Jump
+from engine.var import Var
 
-from modules.init import npc, ab, score, docs, modules_info
+from modules.init import npc, score, modules_info
 
 content = StoryMap(
-    entry = [
+    entry=[
         score.instantiate(),
         npc.Squirrel.info("""Это режим тестирования! Дополнительные команды:
 /addscore X - добавить X очков

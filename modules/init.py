@@ -3,7 +3,7 @@ from engine.telegram_npc import NPC, Ability, Score
 
 # telegram
 from telegram.ext import Updater
-from telegram import Update
+
 
 import json
 
