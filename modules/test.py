@@ -9,6 +9,9 @@ content = StoryMap(
         npc.Squirrel.info("""Это режим тестирования! Дополнительные команды:
 /addscore X - добавить X очков
 /vars - вывести значения всех переменных"""),
+        npc.Squirrel.say("Пусть каждый тестировщик пришлет стикер. По итогу отправьте *Готово*"),
+        npc.Squirrel.acquaintance(
+            reply_phrases=["ОК"]),
         npc.Squirrel.ask("Модуль:", modules_info, Var.module)
     ]
 )

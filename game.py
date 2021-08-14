@@ -95,7 +95,7 @@ def test_setup(update: telegram.Update, context):
     session.chat_id = update.effective_chat.id
     session.abilities = list()
     session.var._data['null'] = None
-    session.players = [update.effective_user.id]
+    session.players = list()
 
     session.debug = True
 
