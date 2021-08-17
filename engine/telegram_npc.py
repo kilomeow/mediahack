@@ -214,19 +214,53 @@ class NPC:
         var: VarKey
 
         def perform(self, session: VarSession) -> Performance:
-            options_markup = InlineKeyboardMarkup.from_row([InlineKeyboardButton(text=o[0], callback_data=o[1]) for o in self.options])
+
+            votes = {o[1]:list() for o in self.options}
+
+            def options_markup():
+                buttons = list()
+
+                for text, data in self.options:
+                    buttons.append(InlineKeyboardButton(text=f"{text} [{len(votes[data])}/{len(session.players)}]",
+                                                        callback_data=data))
+                                        
+                return InlineKeyboardMarkup.from_row(buttons)
             
             self.npc.typing(len(self.text), session.chat_id)
             self.npc.bot.send_message(chat_id=session.chat_id,
-                                    text=self.text,
-                                    reply_markup=options_markup)
+                                      text=self.text,
+                                      parse_mode=ParseMode.MARKDOWN,
+                                      reply_markup=options_markup())
 
             def options_handler(session: VarSession, resume: Callable):
                 def cb(update: telegram.Update, context):
-                    update.callback_query.answer()
-                    update.callback_query.message.edit_reply_markup()
-                    session.var._set(self.var, update.callback_query.data)
-                    return resume()
+
+                    actual_option = update.callback_query.data
+                    actual_voter = update.effective_user.id
+
+                    for option, voters in votes.items():
+                        if actual_voter in voters:
+                            votes[option].remove(actual_voter)
+                
+                    finished = False
+
+                    votes[actual_option].append(actual_voter)
+                    if len(votes[actual_option]) == len(session.players): finished = True
+
+                    update.callback_query.answer(text="Ваш голос принят")
+
+                    options_dict = {o[1]:o[0]  for o in self.options}
+
+                    if finished:
+                        update.callback_query.message.edit_text(
+                            f"{self.text}\n\n" + f"Вы выбрали: *{options_dict[actual_option]}*",
+                            parse_mode=ParseMode.MARKDOWN
+                        )
+                        session.var._set(self.var, actual_option)
+                        return resume()
+                    else:
+                        update.callback_query.message.edit_reply_markup(options_markup())
+                    
                 return SessionQueryHandler(session, cb)
 
             return self.npc.BIND(options_handler)
