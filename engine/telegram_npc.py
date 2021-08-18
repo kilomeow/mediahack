@@ -20,13 +20,11 @@ import telegram
 import telegram.ext
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ParseMode
 
+ok_markup = InlineKeyboardMarkup.from_button(InlineKeyboardButton('Понятно', callback_data='ok'))
+
 import datetime
 
 from threading import Thread
-
-import time
-
-ok_markup = InlineKeyboardMarkup.from_button(InlineKeyboardButton('Понятно', callback_data='ok'))
 
 
 class SessionQueryHandler(CallbackQueryHandler):

@@ -1,12 +1,13 @@
 # engine actions
-import json
-from types import SimpleNamespace
+from engine.telegram_npc import NPC, Ability, Score
 
 # telegram
 from telegram.ext import Updater
 
-from engine.telegram_npc import NPC, Ability, Score
-import modules.encryption
+
+import json
+
+from types import SimpleNamespace
 
 npc = SimpleNamespace()
 ab = SimpleNamespace()
@@ -26,13 +27,13 @@ for c in conf['characters']:
     updaters.append(updater)
 
     setattr(npc, c['var'], NPC(typing_speed=c['typing_speed'],
-                               bot=updater.bot,
-                               dispatcher=updater.dispatcher,
-                               stickerset=stickerset))
+                            bot=updater.bot,
+                            dispatcher=updater.dispatcher,
+                            stickerset=stickerset))
 
 for a in conf['abilities']:
     setattr(ab, a['var'], Ability(name=a['name'],
-                                  npc=getattr(npc, a['npc'])))
+                                    npc=getattr(npc, a['npc']) ))
     abilities_names.append(a['name'])
 
 score = Score(total=20, manager=npc.Squirrel)
@@ -41,6 +42,12 @@ reading_speed = conf['reading_speed']
 
 with open('modules/docs.json') as docs_f:
     docs = json.load(docs_f)
+
+import modules
+import modules.fishing
+import modules.media
+import modules.hacking
+import modules.encryption
 
 modules_names = ['media', 'fishing', 'hacking', 'encryption']
 modules_info = [(getattr(modules, n).description, n) for n in modules_names]

@@ -1,24 +1,31 @@
+from telegram import parsemode
 import telegram
-from telegram import Update
-# telegram
-from telegram.ext import CommandHandler, Filters
 from telegram.ext.callbackqueryhandler import CallbackQueryHandler
+from telegram.ext.inlinequeryhandler import InlineQueryHandler
+from telegram.ext.messagehandler import MessageHandler
 from telegram.inline.inlinekeyboardbutton import InlineKeyboardButton
 from telegram.inline.inlinekeyboardmarkup import InlineKeyboardMarkup
 from telegram.parsemode import ParseMode
-
-import modules.fishing
-import modules.intro
-import modules.media
-import modules.test
-from engine.basic import BaseSession
 from engine.core import NarrativeMachine
-# engine actions
-from engine.var import VarSession
-# setting up
-from modules.init import npc, updaters, abilities_names, score, reading_speed
+from engine.basic import BaseSession
 
-import time
+# engine actions
+from engine.glide import StoryMap
+from engine.telegram_npc import NPC, Ability
+from engine.var import Var, Let, Conditional, Proceed, VarSession
+
+# telegram
+from telegram.ext import CommandHandler, Updater, dispatcher, Filters
+from telegram import Update
+
+# setting up
+from modules.init import npc, ab, updaters, abilities_names, score, reading_speed
+
+import modules.intro
+import modules.test
+
+import modules.media
+import modules.fishing
 
 
 def inline_row(*text_seq):
