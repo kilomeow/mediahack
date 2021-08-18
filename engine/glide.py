@@ -1,6 +1,7 @@
 from typing import Dict, List
 from engine.types import AbstractAction
 
+
 # Composing glides
 
 class StoryMap:

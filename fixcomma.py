@@ -8,16 +8,15 @@ charmap = {
 
 
 def transform(line):
-
     text = line.rstrip()
 
-    if text.endswith(')'): text += ','
+    if text.endswith(')'):
+        text += ','
 
     return text
 
 
 def process(in_fn, out_fn):
-    
     with open(in_fn) as source:
         result_lines = map(transform, source.readlines())
 

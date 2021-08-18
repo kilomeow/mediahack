@@ -13,12 +13,12 @@ class HistorySession(AbstractSession):
 
 class NarrativeMachine:
     def __init__(self, session: HistorySession,
-                       glide_map: StoryMap, 
-                       prefix_callback: Callable[[AbstractSession, AbstractAction], None],
-                       error_callback: Callable[[BaseException, str, int, AbstractAction], AbstractAction],
-                       end_callback: Callable[[AbstractSession], None],
-                       play_all = False):
-        
+                 glide_map: StoryMap,
+                 prefix_callback: Callable[[AbstractSession, AbstractAction], None],
+                 error_callback: Callable[[BaseException, str, int, AbstractAction], AbstractAction],
+                 end_callback: Callable[[AbstractSession], None],
+                 play_all=False):
+
         self.session = session
         self.glide_map = glide_map
 
@@ -29,7 +29,7 @@ class NarrativeMachine:
         if not self.session.history:
             self.session.history.append('entry')
             self.session.progress['entry'] = 0
-        
+
         self.play_all = play_all
         self.bound = False
 
@@ -37,11 +37,12 @@ class NarrativeMachine:
 
     def next_action(self) -> AbstractAction:
 
-        '''
+        """
         almost immutable method of getting next action
-        '''
+        """
 
-        if not self.session.history: return None
+        if not self.session.history:
+            return None
 
         self.state = self.session.history[-1]
         self.progress = self.session.progress[self.state]
@@ -55,8 +56,7 @@ class NarrativeMachine:
         else:
             return current_glide[self.progress]
 
-
-    # move one step forward -- either in the current glide or jumping to another    
+    # move one step forward -- either in the current glide or jumping to another
     def _step(self, new_state=None):
         self.session.progress[self.state] += 1
 
@@ -71,7 +71,6 @@ class NarrativeMachine:
         self._after_resume = after_cb
         self._step()
         return bind_cb(self.session, lambda: self.run(resume=True))
-    
 
     def run(self, resume=False):
 
@@ -79,7 +78,7 @@ class NarrativeMachine:
         if self.bound and resume:
             self._after_resume(self.session)
             self.bound = False
-        
+
         # action loop
         while not self.bound:
 
@@ -89,7 +88,7 @@ class NarrativeMachine:
             # if no more actions
             if action is None:
                 return self.end_callback(self.session)
-            
+
             # if action is not playing - skip
             if not self.play_all and not action.is_actual(self.session):
                 self._step()
@@ -106,7 +105,7 @@ class NarrativeMachine:
                 self.error_callback(e, self.state, self.progress, action)
                 self._step()
             else:
-                # last succesfull action
+                # last successful action
                 self.session.last_action = action
 
                 # process action result
@@ -116,5 +115,3 @@ class NarrativeMachine:
                     jump=self._step,
                     jump_sub=lambda name: self._step(new_state=f"<{name}"),
                 )
-
-

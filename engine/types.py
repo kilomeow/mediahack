@@ -1,6 +1,7 @@
 from adt import adt, Case
 from typing import Callable, Dict, List
 
+
 class AbstractSession:
     pass
 
@@ -19,7 +20,7 @@ class AbstractAction:
 
     def is_actual(self, session: AbstractSession) -> bool:
         return True
-    
+
     @property
     def subglides(self) -> Dict[str, List['AbstractAction']]:
         return dict()
