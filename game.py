@@ -19,7 +19,7 @@ from telegram.ext import CommandHandler, Updater, dispatcher, Filters
 from telegram import Update
 
 # setting up
-from modules.init import npc, ab, updaters, abilities_names, score, reading_speed
+from modules.init import npc, ab, updaters, abilities_names, score, reading_speed, modules_info
 
 import modules.intro
 import modules.test
@@ -84,7 +84,7 @@ def setup(update, context):
         glide_map=modules.intro.content,
         prefix_callback=reading_pause_prefix,
         error_callback=lambda e, s, p, a: print(type(e), e, s, p, a),
-        end_callback=jump_to_module
+        end_callback=ask_module
     )
 
     machine.run()
@@ -118,13 +118,32 @@ def test_setup(update: telegram.Update, context):
         glide_map=modules.test.content,
         prefix_callback=debug_prefix,
         error_callback=lambda e, s, p, a: print(type(e), e, s, p, a),
-        end_callback=jump_to_module
+        end_callback=ask_module
     )
 
     machine.run()
 
 
-def jump_to_module(session: VarSession):
+module_choose = StoryMap(
+    entry = [
+        npc.Squirrel.ask("Выберите модуль, который вы хотите пройти",
+            modules_info,
+            Var.module)
+    ]
+)
+
+def ask_module(session: VarSession):
+    machine = NarrativeMachine(
+        session=session,
+        glide_map=module_choose,
+        prefix_callback=debug_prefix if session.debug else reading_pause_prefix,
+        error_callback=lambda e, s, p, a: print(type(e), e, s, p, a),
+        end_callback=jump_to_module
+    )
+
+    machine.run()
+
+def jump_to_module(session):
     module = getattr(modules, session.var.module)
 
     machine = NarrativeMachine(
@@ -132,11 +151,10 @@ def jump_to_module(session: VarSession):
         glide_map=module.content,
         prefix_callback=debug_prefix if session.debug else reading_pause_prefix,
         error_callback=lambda e, s, p, a: print(type(e), e, s, p, a),
-        end_callback=lambda s: print('End!')
+        end_callback=ask_module
     )
 
     machine.run()
-
 
 
 npc.Squirrel.dispatcher.add_handler(CommandHandler('start', setup))

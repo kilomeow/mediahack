@@ -1,7 +1,7 @@
 from engine.glide import StoryMap
 from engine.var import Var, Proceed, Jump
 
-from modules.init import npc, score, docs, modules_info
+from modules.init import npc, score, docs
 
 description = "Социальные сети и мессенджеры"
 
@@ -226,7 +226,7 @@ content = StoryMap(
         npc.Squirrel.ask(
             "Так, сейчас мы больше ничего не можем сделать. Постарайтесь чуть-чуть отдохнуть, заварите себе чай."
             "Приступайте только когда почувствуете что есть силы продолжать игру.",
-            modules_info, Var.module),
+            [("Отдохнули", "relax")], Var.null),
         # Proceed(vzlom=True)
         # Окей, я добавила меню в конце, но я не знаю, как именно оно работает
     ]

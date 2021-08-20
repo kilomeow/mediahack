@@ -221,10 +221,11 @@ class NPC:
                 buttons = list()
 
                 for text, data in self.options:
-                    buttons.append(InlineKeyboardButton(text=f"{text} [{len(votes[data])}/{len(session.players)}]",
-                                                        callback_data=data))
+                    buttons.append(InlineKeyboardButton(
+                        text=f"{text} [{len(votes[data])}/{len(session.players)}]",
+                        callback_data=data))
                                         
-                return InlineKeyboardMarkup.from_row(buttons)
+                return InlineKeyboardMarkup.from_column(buttons)
             
             self.npc.typing(len(self.text), session.chat_id)
             self.npc.bot.send_message(chat_id=session.chat_id,
@@ -422,7 +423,7 @@ class Score:
 
     def text_ui(self, value):
         bar = value*"#" + "."*(self.total - value)
-        return f"Шкала Злободневности: <code>[{bar}]</code>"
+        return f"Шкала актуальности: <code>[{bar}]</code>"
 
     @dataclass
     class Instantiate(AbstractAction, method):
