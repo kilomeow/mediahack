@@ -91,7 +91,8 @@ content = StoryMap(
         npc.Squirrel.say("Я всех подвела"),
         npc.Floppa.say("Вы же никогда с таким не сталкивались! И ты же смогла всё исправить"),
         Proceed(password=True)
-    ]
+    ],
+    
     password=[
         npc.Magpie.say("смотрите что выкатил наш дом"),
         npc.Magpie.say(
