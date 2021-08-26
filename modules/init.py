@@ -15,7 +15,7 @@ ab = SimpleNamespace()
 updaters = list()
 abilities_names = list()
 
-with open('config.json') as config_f:
+with open('/run/secrets/config.json') as config_f:
     conf = json.load(config_f)
 
 with open('modules/stickers.json') as stickers_f:

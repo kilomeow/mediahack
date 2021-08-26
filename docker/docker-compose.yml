@@ -1,0 +1,16 @@
+version: '3.8'
+
+secrets:
+  config.json:
+    file: config.json
+
+services:
+  bot:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    restart: unless-stopped
+    secrets:
+      - config.json
+    environment:
+      TZ: Europe/Moscow
