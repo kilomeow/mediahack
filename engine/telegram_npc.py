@@ -230,7 +230,6 @@ class NPC:
             self.npc.typing(len(self.text), session.chat_id)
             self.npc.bot.send_message(chat_id=session.chat_id,
                                       text=self.text,
-                                      parse_mode=ParseMode.MARKDOWN,
                                       reply_markup=options_markup())
 
             def options_handler(session: VarSession, resume: Callable):
