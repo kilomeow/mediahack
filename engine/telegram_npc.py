@@ -259,7 +259,7 @@ class NPC:
                         session.var._set(self.var, actual_option)
                         return resume()
                     else:
-                        update.callback_query.message.edit_reply_markup(options_markup())
+                        update.callback_query.message.edit_reply_markup(reply_markup=options_markup())
                     
                 return SessionQueryHandler(session, cb)
 
