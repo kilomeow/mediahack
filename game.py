@@ -117,7 +117,7 @@ def test_setup(update: telegram.Update, context):
         session=session,
         glide_map=modules.test.content,
         prefix_callback=debug_prefix,
-        error_callback=lambda e, s, p, a: print(type(e), e, s, p, a),
+        error_callback=debug_error,
         end_callback=ask_module
     )
 
@@ -132,12 +132,18 @@ module_choose = StoryMap(
     ]
 )
 
+def debug_error(error, session, p, action):
+    npc.Squirrel.bot.send_message(chat_id=session.chat_id,
+    text=f"<code>{type(error)}</code>\n"+
+         f"<code>{error}</code>",
+    parse_mode=ParseMode.HTML)
+
 def ask_module(session: VarSession):
     machine = NarrativeMachine(
         session=session,
         glide_map=module_choose,
         prefix_callback=debug_prefix if session.debug else reading_pause_prefix,
-        error_callback=lambda e, s, p, a: print(type(e), e, s, p, a),
+        error_callback=debug_error if session.debug else lambda e, s, p, a: print(type(e), e, s, p, a),
         end_callback=jump_to_module
     )
 
@@ -150,7 +156,7 @@ def jump_to_module(session):
         session=session,
         glide_map=module.content,
         prefix_callback=debug_prefix if session.debug else reading_pause_prefix,
-        error_callback=lambda e, s, p, a: print(type(e), e, s, p, a),
+        error_callback=debug_error if session.debug else lambda e, s, p, a: print(type(e), e, s, p, a),
         end_callback=ask_module
     )
 
