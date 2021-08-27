@@ -19,7 +19,7 @@ from telegram.ext import CommandHandler, Updater, dispatcher, Filters
 from telegram import Update
 
 # setting up
-from modules.init import npc, ab, updaters, abilities_names, score, reading_speed, modules_info
+from modules.init import npc, ab, updaters, abilities_names, score, reading_speed, modules_info, conf
 
 import modules.intro
 import modules.test
@@ -72,7 +72,20 @@ def debug_prefix(session, action):
     print(f"{session.chat_id}: {action}")
 
 
-def setup(update, context):
+def start(update, context):
+    npc.Squirrel.bot.send_message(
+    chat_id=update.effective_chat.id,
+    text="""
+1) Убедитесь что в чате есть @floppa_foundation_bot @crypto_owl_bot @magpie_reporter_bot
+2) Проверьте, что у меня есть права администратора
+3) Введите команду /play чтобы начать играть!""" + " (или команду /test для тестирования)" if conf['dev'] else "")
+
+    npc.Squirrel.dispatcher.add_handler(CommandHandler('play', play_setup))
+    if conf['dev']: npc.Squirrel.dispatcher.add_handler(CommandHandler('test', test_setup))
+
+
+
+def play_setup(update, context):
     session = BaseSession()
     session.chat_id = update.effective_chat.id
     session.abilities = list()
@@ -157,8 +170,7 @@ def jump_to_module(session):
     machine.run()
 
 
-npc.Squirrel.dispatcher.add_handler(CommandHandler('start', setup))
-npc.Squirrel.dispatcher.add_handler(CommandHandler('test', test_setup))
+npc.Squirrel.dispatcher.add_handler(CommandHandler('start', start))
 
 
 if __name__ == '__main__':
