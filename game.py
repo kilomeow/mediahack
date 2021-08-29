@@ -9,6 +9,8 @@ from telegram.parsemode import ParseMode
 from engine.core import NarrativeMachine
 from engine.basic import BaseSession
 
+import time
+
 # engine actions
 from engine.glide import StoryMap
 from engine.telegram_npc import NPC, Ability
@@ -21,11 +23,10 @@ from telegram import Update
 # setting up
 from modules.init import npc, ab, updaters, abilities_names, score, reading_speed, modules_info, conf
 
+# start modules
 import modules.intro
 import modules.test
 
-import modules.media
-import modules.fishing
 
 
 def inline_row(*text_seq):
