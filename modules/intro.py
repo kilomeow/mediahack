@@ -11,7 +11,7 @@ content = StoryMap(
                          "животным. Как закончите, напишите *Готово*"),
         npc.Squirrel.acquaintance(
             reply_phrases=["Приятно познакомиться!", "Привееет", "Йоу! Напишите *Готово* когда закончите"]),
-        npc.Floppa.say("А я рысь! Рррр"),
+        npc.Floppa.say("А я каракал! Рррр"),
         npc.Floppa.sticker('good_day'),
         npc.Squirrel.say("Это Флоппа - партнер нашего издания. У нас много классных совместных проектов!"),
         npc.Squirrel.info("""
