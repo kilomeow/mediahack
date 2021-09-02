@@ -226,10 +226,11 @@ class NPC:
             self.npc.typing(len(self.text), session.chat_id)
             self.npc.bot.send_message(chat_id=session.chat_id,
                                       text=self.text,
-                                      reply_markup=options_markup())
+                                      reply_markup=options_markup(),
+                                      parse_mode=ParseMode.HTML)
 
             def options_handler(session: VarSession, resume: Callable):
-                def cb(update: telegram.Update, context):
+                def cb(update: telegram.Update, context): 
 
                     actual_option = update.callback_query.data
                     actual_voter = update.effective_user.id
@@ -250,8 +251,8 @@ class NPC:
 
                     if finished:
                         update.callback_query.message.edit_text(
-                            f"{self.text}\n\n" + f"Вы выбрали: *{options_dict[actual_option]}*",
-                            parse_mode=ParseMode.MARKDOWN
+                            f"{self.text}\n\n" + f"Вы выбрали: <b>{options_dict[actual_option]}</b>",
+                            parse_mode=ParseMode.HTML
                         )
                         session.var._set(self.var, actual_option)
                         return resume()
