@@ -5,6 +5,7 @@ from typing import Dict, List
 
 from dataclasses import dataclass, field
 
+
 @dataclass
 class BaseSession(VarSession, HistorySession):
     history: List[str] = field(default_factory=list)

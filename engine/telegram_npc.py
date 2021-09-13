@@ -1,3 +1,4 @@
+import time
 from functools import wraps
 
 from dataclasses import dataclass
@@ -26,6 +27,7 @@ import datetime
 
 from threading import Thread
 
+
 class SessionQueryHandler(CallbackQueryHandler):
     def __init__(self, session, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -41,6 +43,7 @@ def ok_handler(session, resume):
         update.callback_query.answer(text="Принято!")
         update.callback_query.message.edit_reply_markup()
         return resume()
+
     return SessionQueryHandler(session, cb)
 
 
@@ -52,9 +55,9 @@ class NewMember(MessageFilter):
         return any([u.id == self.user_id for u in message.new_chat_members])
 
 
-## meta hacks
+# meta hacks
 
-class method:
+class Method:
     def _enroot(self, rootname, root):
         setattr(self, rootname, root)
 
@@ -76,19 +79,16 @@ def add_init_method(cls, subcls):
 def methodize(cls):
     for subname in filter(lambda s: s[0].isupper(), dir(cls)):
         subcls = getattr(cls, subname)
-        if isinstance(subcls, type) and issubclass(subcls, method):
+        if isinstance(subcls, type) and issubclass(subcls, Method):
             add_init_method(cls, subcls)
 
     return cls
 
 
-import time
-
 @methodize
 @dataclass
 class NPC:
-
-    typing_speed: Number # symbols in second
+    typing_speed: Number  # symbols in second
     bot: telegram.Bot
     dispatcher: telegram.ext.Dispatcher
     stickerset: Dict[str, str]
@@ -97,13 +97,12 @@ class NPC:
 
     def typing(self, length, chat_id):
         self.bot.send_chat_action(chat_id=chat_id, action=telegram.ChatAction.TYPING)
-        time.sleep(length/self.typing_speed)
-
+        time.sleep(length / self.typing_speed)
 
     # bind handler
-    
-    def BIND(self, handler_gen: Callable[[AbstractSession, Callable], None]):
-        
+
+    def bind(self, handler_gen: Callable[[AbstractSession, Callable], None]):
+
         def _bind(session: AbstractSession, resume: Callable):
             session.handler = handler_gen(session, resume)
             self.dispatcher.add_handler(session.handler)
@@ -116,14 +115,14 @@ class NPC:
     # NPC Actions
 
     @dataclass
-    class Say(AbstractAction, method):
+    class Say(AbstractAction, Method):
 
         PREPARE_LENGTH = 6
 
         text: str
 
         def perform(self, session: AbstractSession) -> Performance:
-            self.npc.typing(self.PREPARE_LENGTH+len(self.text), session.chat_id)
+            self.npc.typing(self.PREPARE_LENGTH + len(self.text), session.chat_id)
             self.npc.bot.send_message(
                 chat_id=session.chat_id,
                 text=self.text,
@@ -134,9 +133,8 @@ class NPC:
         def reading_length(self):
             return self.PREPARE_LENGTH + len(self.text)
 
-
     @dataclass
-    class Info(AbstractAction, method):
+    class Info(AbstractAction, Method):
 
         PREPARE_LENGTH = 100
 
@@ -160,16 +158,16 @@ class NPC:
                     uid = update.effective_user.id
 
                     # if not registered user
-                    if uid not in session.players: 
+                    if uid not in session.players:
                         update.callback_query.answer()
                         return
-                    
+
                     if uid not in session.ok_players:
                         update.callback_query.answer(text="Принято!")
                         session.ok_players.append(uid)
                         update.callback_query.message.edit_text(
                             self.text + "\n" + read_players(),
-                            reply_markup = ok_markup,
+                            reply_markup=ok_markup,
                             parse_mode=ParseMode.MARKDOWN
                         )
                     else:
@@ -182,32 +180,30 @@ class NPC:
                 session.handler = SessionQueryHandler(session, ok)
 
                 self.npc.dispatcher.add_handler(session.handler)
-                    
 
             def _remove(session: AbstractSession):
                 self.npc.dispatcher.remove_handler(session.handler)
-            
+
             return Performance.BIND(_bind, _remove)
-    
 
     @dataclass
-    class Advice(AbstractAction, method):
+    class Advice(AbstractAction, Method):
 
         caption: str
         text: str
 
         def perform(self, session: AbstractSession) -> Performance:
-            self.npc.typing(len(self.text)*0.5, session.chat_id)
+            self.npc.typing(len(self.text) * 0.5, session.chat_id)
             message_text = f"<b>[{self.caption}]</b> {self.text}"
             self.npc.bot.send_message(chat_id=session.chat_id,
                                       text=message_text,
                                       reply_markup=ok_markup,
                                       parse_mode=ParseMode.HTML)
-            
-            return self.npc.BIND(ok_handler)
+
+            return self.npc.bind(ok_handler)
 
     @dataclass
-    class Ask(AbstractAction, method):
+    class Ask(AbstractAction, Method):
 
         text: str
         options: List[Tuple[str, str]]
@@ -215,7 +211,7 @@ class NPC:
 
         def perform(self, session: VarSession) -> Performance:
 
-            votes = {o[1]:list() for o in self.options}
+            votes = {o[1]: list() for o in self.options}
 
             def options_markup():
                 buttons = list()
@@ -230,11 +226,11 @@ class NPC:
             self.npc.typing(len(self.text), session.chat_id)
             self.npc.bot.send_message(chat_id=session.chat_id,
                                       text=self.text,
-                                      parse_mode=ParseMode.MARKDOWN,
-                                      reply_markup=options_markup())
+                                      reply_markup=options_markup(),
+                                      parse_mode=ParseMode.HTML)
 
             def options_handler(session: VarSession, resume: Callable):
-                def cb(update: telegram.Update, context):
+                def cb(update: telegram.Update, context): 
 
                     actual_option = update.callback_query.data
                     actual_voter = update.effective_user.id
@@ -242,51 +238,50 @@ class NPC:
                     for option, voters in votes.items():
                         if actual_voter in voters:
                             votes[option].remove(actual_voter)
-                
+
                     finished = False
 
                     votes[actual_option].append(actual_voter)
-                    if len(votes[actual_option]) == len(session.players): finished = True
+                    if len(votes[actual_option]) == len(session.players):
+                        finished = True
 
                     update.callback_query.answer(text="Ваш голос принят")
 
-                    options_dict = {o[1]:o[0]  for o in self.options}
+                    options_dict = {o[1]: o[0] for o in self.options}
 
                     if finished:
                         update.callback_query.message.edit_text(
-                            f"{self.text}\n\n" + f"Вы выбрали: *{options_dict[actual_option]}*",
-                            parse_mode=ParseMode.MARKDOWN
+                            f"{self.text}\n\n" + f"Вы выбрали: <b>{options_dict[actual_option]}</b>",
+                            parse_mode=ParseMode.HTML
                         )
                         session.var._set(self.var, actual_option)
                         return resume()
                     else:
-                        update.callback_query.message.edit_reply_markup(options_markup())
+                        update.callback_query.message.edit_reply_markup(reply_markup=options_markup())
                     
                 return SessionQueryHandler(session, cb)
 
-            return self.npc.BIND(options_handler)
+            return self.npc.bind(options_handler)
 
     @dataclass
-    class Invite(AbstractAction, method):
+    class Invite(AbstractAction, Method):
 
         character: 'NPC'
 
         def perform(self, session: AbstractSession) -> Performance:
-
             char_name = self.character.bot.username
             char_id = self.character.bot.id
 
             self.npc.bot.send_message(chat_id=session.chat_id,
                                       text=f"Пожалуйста, добавьте @{char_name} в чат!")
 
-            
             def bot_added(session: VarSession, resume: Callable):
                 return MessageHandler(Filters.chat(session.chat_id) & NewMember(char_id), lambda u, c: resume())
 
-            return self.npc.BIND(bot_added)
+            return self.npc.bind(bot_added)
 
     @dataclass
-    class Sticker(AbstractAction, method):
+    class Sticker(AbstractAction, Method):
 
         name: str
 
@@ -296,31 +291,34 @@ class NPC:
             return Performance.MOVE_ON()
 
     @dataclass
-    class Timer(AbstractAction, method):
+    class Timer(AbstractAction, Method):
 
         minutes: int
 
         def generate_remaining_time(self, timer_end):
             current_time = datetime.datetime.now()
 
-            ms = lambda s: f"{s//60}:{'0'*(2-len(str(s%60)))}{s%60}"
+            ms = lambda s: f"{s // 60}:{'0' * (2 - len(str(s % 60)))}{s % 60}"
             if current_time > timer_end:
                 return None
             else:
-                return ms((timer_end-current_time).seconds)
+                return ms((timer_end - current_time).seconds)
 
         def perform(self, session: AbstractSession) -> Performance:
             minutes_word = "минута" if self.minutes == 1 else "минут" if self.minutes >= 5 else "минуты"
             self.npc.bot.send_message(session.chat_id,
-                                      text=f"У вас есть <b>{self.minutes} {minutes_word}</b> на выполнение этого задания. Если вы закончите раньше, напишите <b>Готово</b> в чат",
-                                      parse_mode = ParseMode.HTML)
+                                      text=f"У вас есть <b>{self.minutes} {minutes_word}</b> на выполнение этого "
+                                           f"задания. Если вы закончите раньше, напишите <b>Готово</b> в чат",
+                                      parse_mode=ParseMode.HTML)
 
-            session.timer_end = datetime.datetime.now() + datetime.timedelta(0, self.minutes*60)
+            session.timer_end = datetime.datetime.now() + datetime.timedelta(0, self.minutes * 60)
             session.timer_active = True
-            
+
             session.timer_message = self.npc.bot.send_message(session.chat_id,
-                                      text=f"У вас осталось: <b>{self.generate_remaining_time(session.timer_end)}</b>",
-                                      parse_mode = ParseMode.HTML)            
+                                                              text=f"У вас осталось: <b>"
+                                                                   f"{self.generate_remaining_time(session.timer_end)}"
+                                                                   f"</b>",
+                                                              parse_mode=ParseMode.HTML)
 
             def _bind(session: AbstractSession, resume: Callable):
                 def timer_loop():
@@ -330,14 +328,15 @@ class NPC:
                         if remaining_time is None:
                             session.timer_active = False
                             session.timer_message.edit_text(f"Время закончилось!",
-                                                            parse_mode = ParseMode.HTML)
+                                                            parse_mode=ParseMode.HTML)
                             return resume()
                         else:
                             session.timer_message.edit_text(f"У вас осталось: <b>{remaining_time}</b>",
-                                                            parse_mode = ParseMode.HTML)
+                                                            parse_mode=ParseMode.HTML)
 
                 timer_thread = Thread(target=timer_loop, name="timer_loop")
-                #timer_thread.start()
+
+                # timer_thread.start()
 
                 def cb(update, context):
                     session.timer_active = False
@@ -348,12 +347,11 @@ class NPC:
 
             def _remove(session: AbstractSession):
                 self.npc.dispatcher.remove_handler(session.handler)
-                
 
             return Performance.BIND(_bind, _remove)
 
     @dataclass
-    class Kick(AbstractAction, method):
+    class Kick(AbstractAction, Method):
 
         character: 'NPC'
 
@@ -362,12 +360,11 @@ class NPC:
             return Performance.MOVE_ON()
 
     @dataclass
-    class Acquaintance(AbstractAction, method):
+    class Acquaintance(AbstractAction, Method):
 
         reply_phrases: List[str]
 
         def perform(self, session: AbstractSession) -> Performance:
-
             session.players = list()
 
             def meet_player(update: telegram.Update, context):
@@ -375,13 +372,14 @@ class NPC:
                 if uid not in session.players:
                     update.message.reply_text(
                         self.reply_phrases[len(session.players) % len(self.reply_phrases)],
-                        parse_mode = ParseMode.MARKDOWN
+                        parse_mode=ParseMode.MARKDOWN
                     )
                     session.players.append(uid)
-            
+
             def _bind(session: AbstractSession, resume: Callable):
                 session.meet_handler = MessageHandler(Filters.sticker & Filters.chat(session.chat_id), meet_player)
-                session.ready_handler = MessageHandler(Filters.regex("^Готово$") & Filters.chat(session.chat_id), lambda u, c: resume())
+                session.ready_handler = MessageHandler(Filters.regex("^Готово$") & Filters.chat(session.chat_id),
+                                                       lambda u, c: resume())
 
                 self.npc.dispatcher.add_handler(session.meet_handler)
                 self.npc.dispatcher.add_handler(session.ready_handler)
@@ -393,17 +391,14 @@ class NPC:
             return Performance.BIND(_bind, _remove)
 
 
-
 @methodize
 @dataclass
 class Ability:
-
     name: str
     npc: NPC
 
     @dataclass
-    class Advice(AbstractAction, method):
-
+    class Advice(AbstractAction, Method):
         text: str
 
         def is_actual(self, session: AbstractSession) -> bool:
@@ -417,16 +412,15 @@ class Ability:
 @methodize
 @dataclass
 class Score:
-
     total: int
     manager: NPC
 
     def text_ui(self, value):
-        bar = value*"#" + "."*(self.total - value)
-        return f"Шкала актуальности: <code>[{bar}]</code>"
+        bar = value * "#" + "." * (self.total - value)
+        return f"Шкала Злободневности: <code>[{bar}]</code>"
 
     @dataclass
-    class Instantiate(AbstractAction, method):
+    class Instantiate(AbstractAction, Method):
 
         def perform(self, session: AbstractSession) -> Performance:
             session.score_value = 0
@@ -438,9 +432,8 @@ class Score:
             session.score_message.pin()
             return Performance.MOVE_ON()
 
-        
     @dataclass
-    class Add(AbstractAction, method):
+    class Add(AbstractAction, Method):
 
         augmentation: int
 

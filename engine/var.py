@@ -4,6 +4,7 @@ from engine.types import Performance, AbstractAction, AbstractSession
 from dataclasses import dataclass
 from adt import adt, Case
 
+
 # Variable objects
 
 class VarStore:
@@ -21,7 +22,7 @@ class VarStore:
             self._data[name]
         else:
             raise AttributeError
-    
+
     def _export(self):
         pass
 
@@ -70,7 +71,7 @@ class Let(AbstractAction):
     def __init__(self, **varops: Union[Callable[[VarStore], Any], Any]):
         self.varops = varops
 
-    def perform(self, session : VarSession) -> Performance:
+    def perform(self, session: VarSession) -> Performance:
         for varname, varop in self.varops.items():
             if callable(varop):
                 session.var._data[varname] = varop(session.var)
@@ -81,7 +82,7 @@ class Let(AbstractAction):
 
 # Moving around glides
 
-@adt 
+@adt
 class MatchMode:
     WEAK: Case
     STRICT: Case
@@ -92,6 +93,7 @@ class MatchMode:
 def raiser(ex):
     def cb():
         raise ex
+
     return cb
 
 
@@ -101,9 +103,9 @@ class Jump(AbstractAction):
         self.value_key = value_key
         self.mode = mode
 
-    def perform(self, session : VarSession) -> Performance:
+    def perform(self, session: VarSession) -> Performance:
         glide = session.var._access(self.value_key)
-        #if there is no such a glide in a global story map:
+        # if there is no such a glide in a global story map:
         #   return self.mode.match(
         #        weak=Performance.MOVE_ON,
         #        strict=raiser(KeyError),
@@ -120,7 +122,7 @@ class Match(AbstractAction):
         self.jump_map = jump_map
         self.mode = mode
 
-    def perform(self, session : VarSession) -> Performance:
+    def perform(self, session: VarSession) -> Performance:
         var_value = session.var._access(self.value_key)
         for glide, value in self.jump_map.items():
             if value == var_value:
@@ -143,7 +145,7 @@ class Proceed(AbstractAction):
                 self.glide = glide
                 break
 
-    def perform(self, session : VarSession) -> Performance:
+    def perform(self, session: VarSession) -> Performance:
         if self.glide is None:
             return self.mode.match(
                 weak=Performance.MOVE_ON,
@@ -154,19 +156,18 @@ class Proceed(AbstractAction):
             return Performance.JUMP(self.glide)
 
 
-
 class Switch(AbstractAction):
 
     def __init__(self, value_key: VarKey, mode=MatchMode.WEAK(), **local_glides: List[AbstractAction]):
         self.value_key = value_key
         self.glides = local_glides
         self.mode = mode
-    
+
     @property
     def subglides(self):
         return self.glides
 
-    def perform(self, session : VarSession) -> Performance:
+    def perform(self, session: VarSession) -> Performance:
         glide_name = session.var._access(self.value_key)
         if glide_name not in self.glides.keys():
             return self.mode.match(
@@ -184,9 +185,10 @@ class Conditional(AbstractAction):
         self.mode = mode
         self.conditions = conditions
 
-    def perform(self, session : VarSession) -> Performance:
+    def perform(self, session: VarSession) -> Performance:
         for glide_name, condition in self.conditions.items():
-            if condition(session.var): return Performance.JUMP(glide_name)
+            if condition(session.var):
+                return Performance.JUMP(glide_name)
         else:
             return self.mode.match(
                 weak=Performance.MOVE_ON,

@@ -9,6 +9,8 @@ from telegram.parsemode import ParseMode
 from engine.core import NarrativeMachine
 from engine.basic import BaseSession
 
+import time
+
 # engine actions
 from engine.glide import StoryMap
 from engine.telegram_npc import NPC, Ability
@@ -19,17 +21,18 @@ from telegram.ext import CommandHandler, Updater, dispatcher, Filters
 from telegram import Update
 
 # setting up
-from modules.init import npc, ab, updaters, abilities_names, score, reading_speed, modules_info
+from modules.init import npc, ab, updaters, abilities_names, score, reading_speed, modules_info, conf
 
+# start modules
 import modules.intro
 import modules.test
 
-import modules.media
-import modules.fishing
+
 
 def inline_row(*text_seq):
     buttons = [InlineKeyboardButton(text=t, callback_data=t) for t in text_seq]
     return InlineKeyboardMarkup.from_row(buttons)
+
 
 def init(update, context):
     session = BaseSession()
@@ -38,6 +41,7 @@ def init(update, context):
     context.chat_data['session'] = session
     update.message.reply_text("Выберите две способности вашей команды:",
                               reply_markup=inline_row(*abilities_names))
+
 
 def update_abs(update: Update, context):
     ability = update.callback_query.data
@@ -52,27 +56,41 @@ def update_abs(update: Update, context):
     remaining_abs = [a for a in abilities_names if a not in session.abilities]
 
     update.callback_query.message.edit_text(
-        text="Вы выбрали:\n"+ "\n".join([f"<b>{a}</b>" for a in session.abilities]) + "\n\n" + "Напишите Готово чтобы продолжить",
+        text="Вы выбрали:\n" + "\n".join([f"<b>{a}</b>" for a in session.abilities]) + "\n\n" +
+             "Напишите Готово чтобы продолжить",
         parse_mode=ParseMode.HTML,
         reply_markup=inline_row(*remaining_abs))
-    
+
 
 ab_handler = CallbackQueryHandler(update_abs)
 
-#npc.Squirrel.dispatcher.add_handler(ab_handler)
+# npc.Squirrel.dispatcher.add_handler(ab_handler)
 
-import time
 
 def reading_pause_prefix(session, action):
     if hasattr(session.last_action, 'reading_length'):
         delay = session.last_action.reading_length / reading_speed
         time.sleep(delay)
 
+
 def debug_prefix(session, action):
     print(f"{session.chat_id}: {action}")
 
 
-def setup(update, context):
+def start(update, context):
+    npc.Squirrel.bot.send_message(
+    chat_id=update.effective_chat.id,
+    text="""
+1) Убедитесь что в чате есть @floppa_foundation_bot @crypto_owl_bot @magpie_reporter_bot
+2) Проверьте, что у меня есть права администратора
+3) Введите команду /play чтобы начать играть!""" + " (или команду /test для тестирования)" if conf['dev'] else "")
+
+    npc.Squirrel.dispatcher.add_handler(CommandHandler('play', play_setup))
+    if conf['dev']: npc.Squirrel.dispatcher.add_handler(CommandHandler('test', test_setup))
+
+
+
+def play_setup(update, context):
     session = BaseSession()
     session.chat_id = update.effective_chat.id
     session.abilities = list()
@@ -107,7 +125,7 @@ def test_setup(update: telegram.Update, context):
     def vars(update, context):
         update.message.reply_text(
             "\n".join([f"<code>Var.{var}</code> : {val}" for var, val in session.var._data.items()]),
-            parse_mode = ParseMode.HTML
+            parse_mode=ParseMode.HTML
         )
 
     npc.Squirrel.dispatcher.add_handler(CommandHandler('addscore', addscore, filters=Filters.chat(session.chat_id)))
@@ -163,9 +181,7 @@ def jump_to_module(session):
     machine.run()
 
 
-npc.Squirrel.dispatcher.add_handler(CommandHandler('start', setup))
-npc.Squirrel.dispatcher.add_handler(CommandHandler('test', test_setup))
-
+npc.Squirrel.dispatcher.add_handler(CommandHandler('start', start))
 
 if __name__ == '__main__':
     for updater in updaters:

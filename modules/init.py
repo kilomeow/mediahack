@@ -49,5 +49,5 @@ import modules.media
 import modules.hacking
 import modules.encryption
 
-modules_names = ['media', 'fishing', 'hacking', 'encryption']
+modules_names = ['media', 'fishing', 'encryption']
 modules_info = [(getattr(modules, n).description, n) for n in modules_names]
