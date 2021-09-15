@@ -21,7 +21,7 @@ import telegram
 import telegram.ext
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ParseMode
 
-ok_markup = InlineKeyboardMarkup.from_button(InlineKeyboardButton('Понятно', callback_data='ok'))
+ok_markup = lambda bt: InlineKeyboardMarkup.from_button(InlineKeyboardButton(bt, callback_data='ok'))
 
 import datetime
 
@@ -139,6 +139,7 @@ class NPC:
         PREPARE_LENGTH = 100
 
         text: str
+        button_text: str = "Понятно"
 
         def perform(self, session: AbstractSession) -> Performance:
             self.npc.typing(self.PREPARE_LENGTH, session.chat_id)
@@ -149,7 +150,7 @@ class NPC:
 
             self.npc.bot.send_message(chat_id=session.chat_id,
                                       text=self.text + "\n" + read_players(),
-                                      reply_markup=ok_markup,
+                                      reply_markup=ok_markup(self.button_text),
                                       parse_mode=ParseMode.MARKDOWN)
 
             def _bind(session: AbstractSession, resume: Callable):
@@ -167,7 +168,7 @@ class NPC:
                         session.ok_players.append(uid)
                         update.callback_query.message.edit_text(
                             self.text + "\n" + read_players(),
-                            reply_markup=ok_markup,
+                            reply_markup=ok_markup(self.button_text),
                             parse_mode=ParseMode.MARKDOWN
                         )
                     else:
