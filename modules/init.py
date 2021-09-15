@@ -15,7 +15,7 @@ ab = SimpleNamespace()
 updaters = list()
 abilities_names = list()
 
-with open('/run/secrets/config.json') as config_f:
+with open('config.json') as config_f:
     conf = json.load(config_f)
 
 with open('modules/stickers.json') as stickers_f:
@@ -49,5 +49,5 @@ import modules.media
 import modules.hacking
 import modules.encryption
 
-modules_names = ['media', 'fishing', 'encryption']
+modules_names = ['media', 'fishing', 'hacking', 'encryption']
 modules_info = [(getattr(modules, n).description, n) for n in modules_names]
