@@ -15,7 +15,7 @@ class NarrativeMachine:
     def __init__(self, session: HistorySession,
                  glide_map: StoryMap,
                  prefix_callback: Callable[[AbstractSession, AbstractAction], None],
-                 error_callback: Callable[[BaseException, str, int, AbstractAction], AbstractAction],
+                 error_callback: Callable[[BaseException, str, int, AbstractSession, AbstractAction], AbstractAction],
                  end_callback: Callable[[AbstractSession], None],
                  play_all=False):
 
@@ -102,7 +102,7 @@ class NarrativeMachine:
                 result = action.perform(self.session)
             except BaseException as e:
                 # except some shit
-                self.error_callback(e, self.state, self.progress, action)
+                self.error_callback(e, self.state, self.progress, self.session, action)
                 self._step()
             else:
                 # last successful action

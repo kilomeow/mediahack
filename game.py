@@ -150,9 +150,10 @@ module_choose = StoryMap(
     ]
 )
 
-def debug_error(error, session, p, action):
+def debug_error(error, state, progress, session, action):
     npc.Squirrel.bot.send_message(chat_id=session.chat_id,
-    text=f"<code>{type(error)}</code>\n"+
+    text=f"<code>{state}:{progress}</code>\n"+
+         f"<code>{error.__class__.__name__}</code>\n"+
          f"<code>{error}</code>",
     parse_mode=ParseMode.HTML)
 
@@ -161,7 +162,7 @@ def ask_module(session: VarSession):
         session=session,
         glide_map=module_choose,
         prefix_callback=debug_prefix if session.debug else reading_pause_prefix,
-        error_callback=debug_error if session.debug else lambda e, s, p, a: print(type(e), e, s, p, a),
+        error_callback=debug_error,
         end_callback=jump_to_module
     )
 
@@ -174,7 +175,7 @@ def jump_to_module(session):
         session=session,
         glide_map=module.content,
         prefix_callback=debug_prefix if session.debug else reading_pause_prefix,
-        error_callback=debug_error if session.debug else lambda e, s, p, a: print(type(e), e, s, p, a),
+        error_callback=debug_error,
         end_callback=ask_module
     )
 
