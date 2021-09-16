@@ -9,7 +9,7 @@ from numbers import Number
 from typing import Callable, List, Tuple, Dict
 from telegram import parsemode
 
-from telegram.ext import InlineQueryHandler, Dispatcher, Filters, MessageFilter
+from telegram.ext import InlineQueryHandler, Dispatcher, Filters, MessageFilter, CommandHandler
 from telegram.ext.callbackqueryhandler import CallbackQueryHandler
 from telegram.ext.messagehandler import MessageHandler
 from telegram.message import Message
@@ -27,6 +27,10 @@ import datetime
 
 from threading import Thread
 
+def chunks(lst, n):
+    """Yield successive n-sized chunks from lst."""
+    for i in range(0, len(lst), n):
+        yield lst[i:i + n]
 
 class SessionQueryHandler(CallbackQueryHandler):
     def __init__(self, session, *args, **kwargs):
@@ -363,24 +367,50 @@ class NPC:
     @dataclass
     class Acquaintance(AbstractAction, Method):
 
-        reply_phrases: List[str]
+        text: str
+        emojis: str
 
         def perform(self, session: AbstractSession) -> Performance:
-            session.players = list()
+
+            session.players = dict()
+
+            def emoji_keyboard():
+                occupied_emojis = [u['emoji'] for u in session.players.values()]
+                available_emojis = filter(lambda p: p[1] not in occupied_emojis, enumerate(self.emojis))
+                return InlineKeyboardMarkup(chunks([InlineKeyboardButton(text=e, callback_data=str(i)) for i, e in available_emojis], 6))
+            
+            userlist = lambda: [f"@{u['username']} : {u['emoji']}" for u in session.players.values()]
+
+            msg = self.npc.bot.send_message(
+                chat_id=session.chat_id,
+                text=self.text,
+                parse_mode=ParseMode.HTML,
+                reply_markup=emoji_keyboard()
+            )
 
             def meet_player(update: telegram.Update, context):
-                uid = update.effective_user.id
-                if uid not in session.players:
-                    update.message.reply_text(
-                        self.reply_phrases[len(session.players) % len(self.reply_phrases)],
-                        parse_mode=ParseMode.MARKDOWN
-                    )
-                    session.players.append(uid)
+                user = update.effective_user
+                emoji = self.emojis[int(update.callback_query.data)]
+
+                update.callback_query.answer(f"Приятно познакомиться {emoji}")
+
+                session.players[user.id] = {
+                    'username': user.username,
+                    'emoji': emoji
+                }
+
+                players_emojis = "\n".join([f"@{u['username']} : {u['emoji']}" for u in session.players.values()])
+
+                msg.edit_text(
+                    self.text + "\n\n" + players_emojis,
+                    parse_mode=ParseMode.HTML,
+                    reply_markup=emoji_keyboard()
+                )
 
             def _bind(session: AbstractSession, resume: Callable):
-                session.meet_handler = MessageHandler(Filters.sticker & Filters.chat(session.chat_id), meet_player)
-                session.ready_handler = MessageHandler(Filters.regex("^Готово$") & Filters.chat(session.chat_id),
-                                                       lambda u, c: resume())
+                session.meet_handler = CallbackQueryHandler(meet_player) # todo filters chat
+                session.ready_handler = CommandHandler('done', lambda u, c: resume(), filters=Filters.chat(session.chat_id))
+                # todo ready handler which removes buttons and pins emojis
 
                 self.npc.dispatcher.add_handler(session.meet_handler)
                 self.npc.dispatcher.add_handler(session.ready_handler)
