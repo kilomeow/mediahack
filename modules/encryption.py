@@ -96,20 +96,9 @@ content = StoryMap(
                     "Они автоматически расшифровываются, когда ты вводишь правильный пароль."),
         npc.Owl.say("Когда ты включишь шифрование на ноутбуке, принцип будет тем же самым."),
         npc.Magpie.say("окей, и как мне зашифровать данные на ноуте?"),
-        npc.Owl.say(
-            "На твоём ноуте будет встроенная утилита для шифрования: на macOS это FileVault, на Windows — "
-            "BitLocker. Если у тебя Linux, можешь установить себе VeraCrypt."),
-        # В СТРОКЕ НИЖЕ ДОЛЖНА БЫТЬ КНОПКА
         npc.Owl.info(
-            "Инструкция к FileVault: [https://apple.co/3nAx2sY]("
-            "https://apple.co/3nAx2sY)"),
-        npc.Owl.info(
-            "Инструкция к BitLocker: [https://bit.ly/3EoLj1I]("
-            "https://bit.ly/3EoLj1I)"),
-        npc.Owl.info(
-            "Инструкция к VeraCrypt: [https://bit.ly/2XlZd4o]("
-            "https://bit.ly/2XlZd4o"),
-        # В СТРОКЕ НИЖЕ ДОЛЖНА БЫТЬ КНОПКА
+            "На твоём ноуте будет встроенная утилита для шифрования: на macOS это [FileVault](https://apple.co/3nAx2sY), на Windows — "
+            "[BitLocker](https://support.microsoft.com/en-us/windows/turn-on-device-encryption-0c453637-bc88-5f74-5105-741561aae838). Если у тебя Linux, подойдет [VeraCrypt](https://www.veracrypt.fr/en/Downloads.html)."),
         npc.Owl.info(
             "И последнее, но не по важности. Получить законным образом ордер на осмотр вашего ноутбука довольно сложно. "
             "А вот украсть его или выкачать данные, если вы оставили ноут без присмотра в общественном месте  — проще простого. "
