@@ -150,11 +150,11 @@ class NPC:
 
             session.ok_players = list()
 
-            read_players = lambda: f"`[{len(session.ok_players)}/{len(session.players)}]`"
+            read_players = lambda: f"[ {' '.join([session.players[uid]['emoji'] for uid in session.ok_players])} ]"
 
             self.npc.bot.send_message(chat_id=session.chat_id,
-                                      text=self.text + "\n" + read_players(),
-                                      reply_markup=ok_markup(self.button_text),
+                                      text=self.text,
+                                      reply_markup=ok_markup(self.button_text + " " + read_players()),
                                       parse_mode=ParseMode.MARKDOWN)
 
             def _bind(session: AbstractSession, resume: Callable):
@@ -171,8 +171,8 @@ class NPC:
                         update.callback_query.answer(text="Принято!")
                         session.ok_players.append(uid)
                         update.callback_query.message.edit_text(
-                            self.text + "\n" + read_players(),
-                            reply_markup=ok_markup(self.button_text),
+                            self.text,
+                            reply_markup=ok_markup(self.button_text + " " + read_players()),
                             parse_mode=ParseMode.MARKDOWN
                         )
                     else:
@@ -222,8 +222,9 @@ class NPC:
                 buttons = list()
 
                 for text, data in self.options:
+                    emojis = [session.players[uid]['emoji'] for uid in votes[data]]
                     buttons.append(InlineKeyboardButton(
-                        text=f"{text} [{len(votes[data])}/{len(session.players)}]",
+                        text = f"{text} [ {' '.join(emojis)} ]",
                         callback_data=data))
                                         
                 return InlineKeyboardMarkup.from_column(buttons)
