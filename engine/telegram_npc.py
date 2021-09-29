@@ -7,7 +7,7 @@ from types import SimpleNamespace
 
 from numbers import Number
 from typing import Callable, List, Tuple, Dict
-from telegram import parsemode
+from telegram import parsemode, replymarkup
 
 from telegram.ext import InlineQueryHandler, Dispatcher, Filters, MessageFilter
 from telegram.ext.callbackqueryhandler import CallbackQueryHandler
@@ -29,6 +29,16 @@ from threading import Thread
 
 
 class SessionQueryHandler(CallbackQueryHandler):
+    def __init__(self, session, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.session = session
+
+    def check_update(self, update):
+        if update.effective_chat.id == self.session.chat_id:
+            return super().check_update(update)
+
+
+class SessionMessageHandler(MessageHandler):
     def __init__(self, session, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.session = session
@@ -92,6 +102,9 @@ class NPC:
     bot: telegram.Bot
     dispatcher: telegram.ext.Dispatcher
     stickerset: Dict[str, str]
+
+    def send_message(self, session, *args, **kwargs):
+        return self.bot.send_message(chat_id=session.chat_id, *args, **kwargs)
 
     # typing text for some time
 
@@ -292,9 +305,17 @@ class NPC:
             return Performance.MOVE_ON()
 
     @dataclass
-    class Timer(AbstractAction, Method):
+    class Task(AbstractAction, Method):
 
+        text: str
         minutes: int
+        fragments: List[str]
+        wrong_fragment: str
+        too_big_fragment: str
+        correct_fragment: str
+        left_fragments: Dict[int, str]
+
+        MAX_CHAR_DIFF = 30
 
         def generate_remaining_time(self, timer_end):
             current_time = datetime.datetime.now()
@@ -303,49 +324,95 @@ class NPC:
             if current_time > timer_end:
                 return None
             else:
-                return ms((timer_end - current_time).seconds)
+                s = (timer_end - current_time).seconds
+                return (s, ms(s))
 
+        @staticmethod
+        def reduce(text):
+            words = list()
+            for c in ' '+text:
+                if c.isalpha():
+                    words[-1] += c.lower()
+                else:
+                    words.append('')
+            if not words[-1]: words.pop(-1)
+            return f" {' '.join(words)} "
+                
         def perform(self, session: AbstractSession) -> Performance:
-            minutes_word = "минута" if self.minutes == 1 else "минут" if self.minutes >= 5 else "минуты"
-            self.npc.bot.send_message(session.chat_id,
-                                      text=f"У вас есть <b>{self.minutes} {minutes_word}</b> на выполнение этого "
-                                           f"задания. Если вы закончите раньше, напишите <b>Готово</b> в чат",
-                                      parse_mode=ParseMode.HTML)
 
-            session.timer_end = datetime.datetime.now() + datetime.timedelta(0, self.minutes * 60)
+            session.timer_end = datetime.datetime.now() + datetime.timedelta(0, self.minutes * 60 + 1)
             session.timer_active = True
 
+            session.remaining_fragments = self.fragments
+
+            _, session.timer_text = self.generate_remaining_time(session.timer_end)
+
+            msg_text = lambda: self.text+"\n\n"+f"У вас осталось: *{session.timer_text}*"
+
+            session.var._data['task_positive'] = 0
+            session.var._data['task_negative'] = 0
+
             session.timer_message = self.npc.bot.send_message(session.chat_id,
-                                                              text=f"У вас осталось: <b>"
-                                                                   f"{self.generate_remaining_time(session.timer_end)}"
-                                                                   f"</b>",
-                                                              parse_mode=ParseMode.HTML)
+                            text=msg_text(),
+                            parse_mode=ParseMode.MARKDOWN)
 
             def _bind(session: AbstractSession, resume: Callable):
+
+                def finish(ahead):
+                    session.var._data['task_finished_ahead'] = ahead
+                    return resume()
+
                 def timer_loop():
                     while session.timer_active:
-                        time.sleep(3)
-                        remaining_time = self.generate_remaining_time(session.timer_end)
+                        s, remaining_time = self.generate_remaining_time(session.timer_end)
                         if remaining_time is None:
                             session.timer_active = False
-                            session.timer_message.edit_text(f"Время закончилось!",
-                                                            parse_mode=ParseMode.HTML)
-                            return resume()
-                        else:
-                            session.timer_message.edit_text(f"У вас осталось: <b>{remaining_time}</b>",
-                                                            parse_mode=ParseMode.HTML)
+                            session.timer_message.edit_text(self.text+"\n\n"+f"Время закончилось!",
+                                                            parse_mode=ParseMode.MARKDOWN)
+                            return finish(False)
+                        elif remaining_time != session.timer_text and s%5 == 0:
+                            session.timer_text = remaining_time
+                            session.timer_message.edit_text(msg_text(),
+                                                            parse_mode=ParseMode.MARKDOWN)
+                        time.sleep(0.1)
+                    else:
+                        return finish(True)
 
                 timer_thread = Thread(target=timer_loop, name="timer_loop")
 
-                # timer_thread.start()
+                def check_fragment(update, context):
+                    guess = update.message.text
+                    for frag in session.remaining_fragments:
+                        if self.reduce(frag) in self.reduce(guess):
+                            if len(guess) - len(frag) > self.MAX_CHAR_DIFF:
+                                self.npc.send_message(session, text=self.too_big_fragment,
+                                                      parse_mode=ParseMode.MARKDOWN)
+                                break
+                            else:
+                                session.var.task_positive += 1
 
-                def cb(update, context):
-                    session.timer_active = False
-                    resume()
+                                session.remaining_fragments.remove(frag)
+                                left = len(session.remaining_fragments)
+                                if left in self.left_fragments.keys():
+                                    reply_text = self.left_fragments[left]
+                                else:
+                                    reply_text = self.correct_fragment
+                                self.npc.send_message(session, text=reply_text,
+                                                      parse_mode=ParseMode.MARKDOWN)
+                                
+                                if not left:
+                                    session.timer_active = False
+                                break
+                    else:
+                        session.var.task_negative += 1
+                        self.npc.send_message(session, text=self.wrong_fragment,
+                                              parse_mode=ParseMode.MARKDOWN)
 
-                session.handler = MessageHandler(Filters.chat(session.chat_id) & Filters.regex("^Готово$"), cb)
+                session.handler = SessionMessageHandler(session, Filters.text, check_fragment)
+
+                timer_thread.start()
                 self.npc.dispatcher.add_handler(session.handler)
-
+                
             def _remove(session: AbstractSession):
                 self.npc.dispatcher.remove_handler(session.handler)
 
