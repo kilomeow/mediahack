@@ -3,7 +3,7 @@ from engine.var import Var, Proceed, Jump
 
 from modules.init import npc, score, docs
 
-description = "Социальные сети и мессенджеры"
+description = "Публичность и мессенджеры"
 
 content = StoryMap(
     entry=[

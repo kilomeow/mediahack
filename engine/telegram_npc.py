@@ -516,7 +516,7 @@ class Score:
 
     def text_ui(self, value):
         bar = value * "#" + "." * (self.total - value)
-        return f"Шкала Злободневности: <code>[{bar}]</code>"
+        return f"Шкала актуальности: <code>[{bar}]</code>"
 
     @dataclass
     class Instantiate(AbstractAction, Method):

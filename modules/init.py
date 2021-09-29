@@ -36,7 +36,7 @@ for a in conf['abilities']:
                                     npc=getattr(npc, a['npc']) ))
     abilities_names.append(a['name'])
 
-score = Score(total=20, manager=npc.Squirrel)
+score = Score(total=15, manager=npc.Squirrel)
 
 reading_speed = conf['reading_speed']
 
@@ -50,7 +50,7 @@ import modules.media
 import modules.hacking
 import modules.encryption
 
-modules_names = ['intro', 'media', 'fishing', 'hacking', 'encryption']
+modules_names = ['fishing', 'hacking', 'encryption']
 modules_info = [(getattr(modules, n).description, n) for n in modules_names]
 
 entry_module = 'intro'

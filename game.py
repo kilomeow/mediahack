@@ -78,12 +78,15 @@ def debug_prefix(session, action):
 
 
 def start(update, context):
+    # todo check bots
     npc.Squirrel.bot.send_message(
     chat_id=update.effective_chat.id,
     text="""
+Вы запустили игру «Взлом медиа». Эта игра познакомит вас с базовыми правилами кибербезопасности.
+Продолжительность игры займёт примерно час, но зависит от того сколько модулей вы решите пройти.
 1) Убедитесь что в чате есть @floppa_foundation_bot @crypto_owl_bot @magpie_reporter_bot
 2) Проверьте, что у меня есть права администратора
-3) Введите команду /play чтобы начать играть!""" + " (или команду /test для тестирования)" if conf['dev'] else "")
+3) Введите команду /play чтобы начать играть!""")
 
     npc.Squirrel.dispatcher.add_handler(CommandHandler('play', play_setup))
     if conf['dev']: npc.Squirrel.dispatcher.add_handler(CommandHandler('test', test_setup))
