@@ -44,10 +44,40 @@ with open('modules/docs.json') as docs_f:
     docs = json.load(docs_f)
 
 import modules
+import modules.intro
 import modules.fishing
 import modules.media
 import modules.hacking
 import modules.encryption
 
-modules_names = ['media', 'fishing', 'hacking', 'encryption']
+modules_names = ['intro', 'media', 'fishing', 'hacking', 'encryption']
 modules_info = [(getattr(modules, n).description, n) for n in modules_names]
+
+entry_module = 'intro'
+
+modules_deps = {
+    'intro': {
+        'requires': [],
+        'blocked_by': []
+    },
+
+    'media': {
+        'requires': ['intro'],
+        'blocked_by': ['hacking']
+    },
+
+    'hacking': {
+        'requires': ['intro'],
+        'blocked_by': []
+    },
+
+    'encryption': {
+        'requires': ['intro', 'hacking'],
+        'blocked_by': []
+    },
+
+    'fishing': {
+        'requires': ['intro'],
+        'blocked_by': []
+    }
+}

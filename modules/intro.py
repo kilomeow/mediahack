@@ -1,7 +1,9 @@
 from engine.glide import StoryMap
 from engine.var import Var
 
-from modules.init import npc, score, docs, modules_info
+from modules.init import npc, score, docs
+
+description = "Интро"
 
 content = StoryMap(
     entry=[
