@@ -3,7 +3,7 @@ from engine.var import Var, Conditional, Proceed, Jump
 
 from modules.init import npc, score
 
-description = "Фишинг, VPN и почты"
+description = "Почта"
 
 content = StoryMap(
     entry=[
