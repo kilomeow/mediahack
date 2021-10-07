@@ -26,15 +26,19 @@ from modules.init import npc, ab, updaters, abilities_names, score, reading_spee
 # start modules
 import modules.intro
 import modules.test
+from session_db import push_snapshot
 
 
 # NarrativeMachine tools
 
-def reading_pause_prefix(session, action):
+def reading_pause(session):
     if hasattr(session.last_action, 'reading_length'):
         delay = session.last_action.reading_length / reading_speed
         time.sleep(delay)
 
+def play_prefix(session, action):
+    push_snapshot(session)
+    reading_pause(session)
 
 def debug_prefix(session, action):
     print(f"{session.chat_id}: {action}")
@@ -126,7 +130,7 @@ def play_setup(update, context):
     machine = NarrativeMachine(
         session=session,
         glide_map=modules.intro.content,
-        prefix_callback=reading_pause_prefix,
+        prefix_callback=play_prefix,
         error_callback=lambda e, s, p, a: print(type(e), e, s, p, a),
         end_callback=ask_module
     )
@@ -187,7 +191,7 @@ def ask_module(session: VarSession):
     machine = NarrativeMachine(
         session=session,
         glide_map=module_choose,
-        prefix_callback=debug_prefix if session.debug else reading_pause_prefix,
+        prefix_callback=play_prefix,
         error_callback=debug_error,
         end_callback=jump_to_module
     )
