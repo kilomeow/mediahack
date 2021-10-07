@@ -28,44 +28,7 @@ import modules.intro
 import modules.test
 
 
-
-def inline_row(*text_seq):
-    buttons = [InlineKeyboardButton(text=t, callback_data=t) for t in text_seq]
-    return InlineKeyboardMarkup.from_row(buttons)
-
-
-def init(update, context):
-    session = BaseSession()
-    session.chat_id = update.effective_chat.id
-    session.abilities = list()
-    context.chat_data['session'] = session
-    update.message.reply_text("Выберите две способности вашей команды:",
-                              reply_markup=inline_row(*abilities_names))
-
-
-def update_abs(update: Update, context):
-    ability = update.callback_query.data
-    update.callback_query.answer(text=f"Берем {ability}")
-
-    session = context.chat_data['session']
-    session.abilities.append(ability)
-
-    if len(session.abilities) > 2:
-        session.abilities.pop(0)
-
-    remaining_abs = [a for a in abilities_names if a not in session.abilities]
-
-    update.callback_query.message.edit_text(
-        text="Вы выбрали:\n" + "\n".join([f"<b>{a}</b>" for a in session.abilities]) + "\n\n" +
-             "Напишите Готово чтобы продолжить",
-        parse_mode=ParseMode.HTML,
-        reply_markup=inline_row(*remaining_abs))
-
-
-ab_handler = CallbackQueryHandler(update_abs)
-
-# npc.Squirrel.dispatcher.add_handler(ab_handler)
-
+# NarrativeMachine tools
 
 def reading_pause_prefix(session, action):
     if hasattr(session.last_action, 'reading_length'):
@@ -77,23 +40,78 @@ def debug_prefix(session, action):
     print(f"{session.chat_id}: {action}")
 
 
-def start(update, context):
-    # todo check bots
+# util functions for checking initial conditions
+
+def check_bots(chat, *bots):
+    missing = list()
+    for bot in bots:
+            try:
+                cm = chat.get_member(bot.id)
+            except:
+                missing.append(bot.name)
+            else:
+                if cm.status == 'left': missing.append(bot.name)
+    return missing
+
+def check_rights(chat, bot, required):
+    missing = list()
+    bot_member = chat.get_member(bot.id)
+    for right in required:
+        if not getattr(bot_member, right):
+            missing.append(right)
+    return missing
+
+def text_cb(text):
+    def cb(update, context):
+        update.message.reply_text(text)
+    return cb
+
+# callbacks
+
+def game_info(update, context):
+    update.message.reply_text("""
+Создайте групповой чат и добавьте меня туда!
+""")
+
+def start_game(update, context):
+    bot_team = [npc.Floppa.bot, npc.Magpie.bot, npc.Owl.bot]
+
+    missing_bots = check_bots(update.effective_chat, *bot_team)
+    missing_rights = check_rights(update.effective_chat, npc.Squirrel.bot, ['can_pin_messages', 'can_restrict_members'])
+
+    context.chat_data['play_allowed'] = not missing_bots and not missing_rights
+
+    rights_locale = {
+        'can_pin_messages': 'закрепление сообщений',
+        'can_restrict_members': 'бан пользователей'
+    }
+
+    instructions = list()
+    if missing_bots:
+        instructions.append(f"Добавьте {' '.join(missing_bots)} в этот чат")
+    if missing_rights:
+        instructions.append(f"Назначьте меня администраторкой с правами на {' и '.join(['<b>'+rights_locale[r]+'</b>' for r in missing_rights])}")
+    if not missing_bots and not missing_rights:
+        instructions.append("Введите команду /play !")
+
+
     npc.Squirrel.bot.send_message(
-    chat_id=update.effective_chat.id,
-    text="""
+        chat_id=update.effective_chat.id,
+        text="""
 Вы запустили игру «Взлом медиа». Эта игра познакомит вас с базовыми правилами кибербезопасности.
 Продолжительность игры займёт примерно час, но зависит от того сколько модулей вы решите пройти.
-1) Убедитесь что в чате есть @floppa_foundation_bot @crypto_owl_bot @magpie_reporter_bot
-2) Проверьте, что у меня есть права администратора
-3) Введите команду /play чтобы начать играть!""")
-
-    npc.Squirrel.dispatcher.add_handler(CommandHandler('play', play_setup))
-    if conf['dev']: npc.Squirrel.dispatcher.add_handler(CommandHandler('test', test_setup))
+Чтобы начать игру:\n\n""" + "\n\n".join(instructions),
+        parse_mode=ParseMode.HTML)
 
 
+def play(update, context):
+    if context.chat_data.get('play_allowed'):
+        return play_setup(update, context)
 
 def play_setup(update, context):
+
+    context.chat_data['play_allowed'] = False
+
     session = BaseSession()
     session.chat_id = update.effective_chat.id
     session.abilities = list()
@@ -184,8 +202,15 @@ def jump_to_module(session):
 
     machine.run()
 
+# info
+npc.Squirrel.dispatcher.add_handler(CommandHandler('start', game_info, filters=Filters.chat_type.private))
+npc.Floppa.dispatcher.add_handler(CommandHandler('start', text_cb("По всем вопросам обращайтесь к @squirrel_manager_bot !"), filters=Filters.chat_type.private))
+npc.Magpie.dispatcher.add_handler(CommandHandler('start', text_cb("По всем вопросам обращайтесь к @squirrel_manager_bot !"), filters=Filters.chat_type.private))
+npc.Owl.dispatcher.add_handler(CommandHandler('start', text_cb("По всем вопросам обращайтесь к @squirrel_manager_bot !"), filters=Filters.chat_type.private))
+npc.Rabbit.dispatcher.add_handler(CommandHandler('start', text_cb("По всем вопросам обращайтесь к @squirrel_manager_bot !"), filters=Filters.chat_type.private))
 
-npc.Squirrel.dispatcher.add_handler(CommandHandler('start', start))
+npc.Squirrel.dispatcher.add_handler(CommandHandler('start', start_game, filters=Filters.chat_type.groups))
+npc.Squirrel.dispatcher.add_handler(CommandHandler('play', play, filters=Filters.chat_type.groups))
 
 if __name__ == '__main__':
     for updater in updaters:
