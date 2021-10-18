@@ -37,7 +37,9 @@ def push_snapshot(session):
 
     session_snapshot = {
              'time': timestamp(),
-             'current': current}
+             'current': current,
+             'players_number': len(session.players)
+            }
 
     sessions.update_one(
         {"chat_id": session.chat_id},
