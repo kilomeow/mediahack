@@ -295,7 +295,7 @@ class NPC:
                                       text=f"Пожалуйста, добавьте @{char_name} в чат!")
 
             def bot_added(session: VarSession, resume: Callable):
-                return MessageHandler(Filters.chat(session.chat_id) & NewMember(char_id), lambda u, c: resume())
+                return SessionMessageHandler(session, NewMember(char_id), lambda u, c: resume())
 
             return self.npc.bind(bot_added)
 
@@ -476,7 +476,7 @@ class NPC:
                 )
 
             def _bind(session: AbstractSession, resume: Callable):
-                session.meet_handler = CallbackQueryHandler(meet_player) # todo filters chat
+                session.meet_handler = SessionQueryHandler(session, meet_player) # todo filters chat
                 session.ready_handler = CommandHandler('done', lambda u, c: resume(), filters=Filters.chat(session.chat_id))
                 # todo ready handler which removes buttons and pins emojis
 
