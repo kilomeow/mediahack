@@ -205,7 +205,7 @@ def jump_to_module(session):
     machine = NarrativeMachine(
         session=session,
         glide_map=module.content,
-        prefix_callback=debug_prefix if session.debug else reading_pause_prefix,
+        prefix_callback=play_prefix,
         error_callback=debug_error,
         end_callback=ask_module
     )
