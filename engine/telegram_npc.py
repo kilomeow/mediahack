@@ -9,7 +9,7 @@ from numbers import Number
 from typing import Callable, List, Tuple, Dict
 from telegram import parsemode, replymarkup
 
-from telegram.ext import InlineQueryHandler, Dispatcher, Filters, MessageFilter, CommandHandler
+from telegram.ext import Filters, MessageFilter, CommandHandler
 from telegram.ext.callbackqueryhandler import CallbackQueryHandler
 from telegram.ext.messagehandler import MessageHandler
 from telegram.message import Message
