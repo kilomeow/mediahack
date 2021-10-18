@@ -1,23 +1,20 @@
-from telegram import parsemode
 import telegram
-from telegram.ext.callbackqueryhandler import CallbackQueryHandler
-from telegram.ext.inlinequeryhandler import InlineQueryHandler
+from telegram.ext import Filters, MessageFilter, run_async
 from telegram.ext.messagehandler import MessageHandler
-from telegram.inline.inlinekeyboardbutton import InlineKeyboardButton
-from telegram.inline.inlinekeyboardmarkup import InlineKeyboardMarkup
 from telegram.parsemode import ParseMode
 from engine.core import NarrativeMachine
 from engine.basic import BaseSession
+from dataclasses import dataclass
 
 import time
 
 # engine actions
 from engine.glide import StoryMap
-from engine.telegram_npc import NPC, Ability
-from engine.var import Var, Let, Conditional, Proceed, VarSession
+from engine.var import Var, VarSession
+from engine.basic import BaseSession
 
 # telegram
-from telegram.ext import CommandHandler, Updater, dispatcher, Filters
+from telegram.ext import CommandHandler, Filters
 from telegram import Update
 
 # setting up
@@ -28,6 +25,7 @@ import modules.intro
 import modules.test
 from session_db import push_snapshot
 
+sessions = dict()
 
 # NarrativeMachine tools
 
@@ -118,13 +116,15 @@ def play(update, context):
     if context.chat_data.get('play_allowed'):
         return play_setup(update, context)
 
+
 def play_setup(update, context):
 
     context.chat_data['play_allowed'] = False
 
     session = BaseSession()
+
     session.chat_id = update.effective_chat.id
-    session.abilities = list()
+    sessions[session.chat_id] = session
 
     session.debug = False
 
@@ -219,8 +219,39 @@ npc.Magpie.dispatcher.add_handler(CommandHandler('start', text_cb("По всем
 npc.Owl.dispatcher.add_handler(CommandHandler('start', text_cb("По всем вопросам обращайтесь к @squirrel_manager_bot !"), filters=Filters.chat_type.private))
 npc.Rabbit.dispatcher.add_handler(CommandHandler('start', text_cb("По всем вопросам обращайтесь к @squirrel_manager_bot !"), filters=Filters.chat_type.private))
 
+# start / play
 npc.Squirrel.dispatcher.add_handler(CommandHandler('start', start_game, filters=Filters.chat_type.groups))
 npc.Squirrel.dispatcher.add_handler(CommandHandler('play', play, filters=Filters.chat_type.groups))
+
+# left player processing
+
+def removePlayer(chat_id, user_id):
+    sessions[chat_id].players.pop(user_id)
+
+@dataclass
+class LeftPlayer(MessageFilter):
+    def filter(self, message: telegram.Message):
+        left = message.left_chat_member
+        if left and not left.is_bot:
+            try:
+                removePlayer(message.chat.id, left.id)
+            except:
+                pass
+            return True
+        return False
+
+
+def dropPlayer(update, context):
+    try:
+        removePlayer(update.effective_chat.id, update.effective_user.id)
+    except:
+        pass
+    else:
+        update.message.reply_text("Я убрала тебя из участников игры! Ты можешь продолжать наблюдать за происходящим")
+
+
+npc.Squirrel.dispatcher.add_handler(MessageHandler(LeftPlayer(), text_cb("Пока!"), run_async=True))
+npc.Squirrel.dispatcher.add_handler(CommandHandler('drop', dropPlayer, filters=Filters.chat_type.groups, run_async=True))
 
 if __name__ == '__main__':
     for updater in updaters:
