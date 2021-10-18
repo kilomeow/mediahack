@@ -38,7 +38,7 @@ def push_snapshot(session):
     session_snapshot = {
              'time': timestamp(),
              'current': current,
-             'players_number': len(session.players)
+             'players_number': hasattr(session, 'players') and len(session.players)
             }
 
     sessions.update_one(
