@@ -37,8 +37,11 @@ class VarStore:
 class VarKey:
     name: str
 
-    def __format__(self, format_spec):
-        return "{var.$}".replace('$', self.name)
+    #def __format__(self, format_spec):
+    #    return "{var.$}".replace('$', self.name)
+
+    def __repr__(self):
+        return f"${self.name}"
 
 
 class VarManager:
@@ -114,6 +117,9 @@ class Jump(AbstractAction):
         # else:
         return Performance.JUMP(glide)
 
+    def __repr__(self):
+        return f"<Jump {self.value_key}>"
+
 
 class Match(AbstractAction):
 
@@ -154,6 +160,9 @@ class Proceed(AbstractAction):
             )
         else:
             return Performance.JUMP(self.glide)
+
+    def __repr__(self):
+        return f"<Proceed @{self.glide}>"
 
 
 class Switch(AbstractAction):

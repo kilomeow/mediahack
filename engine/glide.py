@@ -6,8 +6,9 @@ from engine.types import AbstractAction
 
 class StoryMap:
     def __init__(self, entry: List[AbstractAction], **glides: List[AbstractAction]):
-        self.glides = glides.copy()
+        self.glides = dict()
         self.glides['entry'] = entry
+        self.glides.update(glides)
 
     def __getitem__(self, glide_name):
         return self.glides[glide_name]

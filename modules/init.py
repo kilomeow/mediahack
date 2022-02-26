@@ -27,6 +27,7 @@ for c in conf['characters']:
     updaters.append(updater)
 
     setattr(npc, c['var'], NPC(typing_speed=c['typing_speed'],
+                            name=c['name'],
                             bot=updater.bot,
                             dispatcher=updater.dispatcher,
                             stickerset=stickerset))

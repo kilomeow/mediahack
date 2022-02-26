@@ -102,6 +102,7 @@ def methodize(cls):
 @methodize
 @dataclass
 class NPC:
+    name: str
     typing_speed: Number  # symbols in second
     bot: telegram.Bot
     dispatcher: telegram.ext.Dispatcher
